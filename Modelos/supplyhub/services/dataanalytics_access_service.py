@@ -1,8 +1,8 @@
 """Autorización de acceso de SupplyHub contra DataAnalytics.
 
-Autenticación y autorización son capas distintas:
-- proveedor (AD/nómina/Google) valida identidad;
-- DataAnalytics valida usuario activo, perfil y método de acceso.
+Regla SupplyHub: el usuario corporativo es la nómina. DataAnalytics conserva
+los nombres IdUsuario/IdPerfil por compatibilidad con sus SP; cuando IdUsuario
+representa la nómina, se usa también como username corporativo.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ METODO_NOMINA = 3
 DENIED_MESSAGE = "Usuario sin permiso en SupplyHub."
 
 SESSION_KEYS = (
+    "sh_usuario",
     "sh_id_usuario",
     "sh_id_perfil",
     "sh_metodo_acceso",
@@ -30,6 +31,22 @@ SESSION_KEYS = (
     "sh_display_name",
     "sh_identity_source",
 )
+
+
+def normalize_payroll(value) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def corporate_username(*, id_usuario=0, no_nomina: str = "") -> str:
+    """Devuelve el username corporativo; por regla de negocio es la nómina."""
+    payroll = normalize_payroll(no_nomina)
+    if payroll:
+        return payroll
+    if getattr(settings, "CORPORATE_USERNAME_IS_PAYROLL", True):
+        return normalize_payroll(id_usuario)
+    return normalize_payroll(id_usuario)
 
 
 def _fetch_row(cursor):
@@ -57,7 +74,6 @@ def validate_user(
         cur = conn.cursor()
         if metodo_acceso is not None:
             sp = settings.DATAANALYTICS_SP_VALIDATE_METHOD
-            # El nombre del SP viene de configuración controlada; valores de usuario son parámetros.
             cur.execute(f"EXEC {sp} ?, ?, ?", (metodo_acceso, no_nomina, correo))
         else:
             sp = settings.DATAANALYTICS_SP_VALIDATE
@@ -133,7 +149,6 @@ def authorize_and_log(
     correo: str | None = None,
     metodo_acceso: int | None = None,
 ) -> tuple[bool, int, int]:
-    # Modo desarrollo: proveedor puede autenticarse sin DataAnalytics.
     if not settings.DATAANALYTICS_ENABLED:
         return True, 0, 0
 
@@ -163,14 +178,20 @@ def store_session_identity(
     correo: str = "",
     display_name: str = "",
     source: str = "",
+    django_username: str = "",
 ) -> None:
     clear_session_identity(session)
+    usuario = corporate_username(id_usuario=id_usuario, no_nomina=no_nomina)
+    if not usuario:
+        usuario = normalize_payroll(django_username)
+
+    session["sh_usuario"] = usuario
     session["sh_id_usuario"] = int(id_usuario or 0)
     session["sh_id_perfil"] = int(id_perfil or 0)
     session["sh_metodo_acceso"] = int(metodo_acceso or 0)
-    session["sh_no_nomina"] = no_nomina or ""
-    session["sh_correo"] = correo or ""
-    session["sh_display_name"] = display_name or ""
+    session["sh_no_nomina"] = normalize_payroll(no_nomina)
+    session["sh_correo"] = (correo or "").strip().lower()
+    session["sh_display_name"] = display_name or usuario
     session["sh_identity_source"] = source or ""
 
 

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ module_title }} | SupplyHub{% endblock %}
+{% block content %}
+<div class="card">
+    <p class="eyebrow">{{ module_group }}</p>
+    <h1>{{ module_title }}</h1>
+    <p>{{ module_description }}</p>
+    <p class="muted">{{ module_status }}</p>
+    <p><a href="{% url 'supplyhub:hub_index' %}">← Volver a SupplyHub</a></p>
+</div>
+{% endblock %}

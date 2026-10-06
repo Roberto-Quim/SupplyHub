@@ -3,13 +3,17 @@
 {% block content %}
 <div class="card auth-card">
     <h1>Acceso por nómina</h1>
+    <p class="muted">Tu número de nómina es tu usuario corporativo en SupplyHub.</p>
     {% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
     <form method="post">
         {% csrf_token %}
-        <label>Número de nómina<input name="employee_number" inputmode="numeric" required></label>
-        <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
-        <button type="submit">Entrar</button>
+        <label>Número de nómina<input name="employee_number" inputmode="numeric" autocomplete="username" required {% if not payroll_enabled %}disabled{% endif %}></label>
+        <label>Contraseña<input type="password" name="password" autocomplete="current-password" required {% if not payroll_enabled %}disabled{% endif %}></label>
+        <button type="submit" {% if not payroll_enabled %}disabled{% endif %}>Entrar</button>
     </form>
+    {% if not payroll_enabled %}
+        <p class="message">El formulario ya está montado, pero PAYROLL_AUTH_ENABLED=False. Configura primero los PAYROLL_DB_* y SP reales.</p>
+    {% endif %}
     <p><a href="{% url 'login' %}">Volver</a></p>
 </div>
 {% endblock %}

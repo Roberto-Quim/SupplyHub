@@ -1,7 +1,7 @@
 """Configuración de SupplyHub.
 
-Paso 2: autenticación desacoplada de autorización, siguiendo el patrón del
-Sistema Data Analytics. Los secretos se leen del entorno y pueden usar fernet:.
+Paso 3: identidad corporativa basada en nómina, Google OAuth listo para activar,
+menú HUB/Administración y autorización por rutas.
 """
 from pathlib import Path
 
@@ -29,10 +29,11 @@ _csrf_origins = get_env_value("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [item.strip() for item in _csrf_origins.split(",") if item.strip()]
 DJANGO_ADMIN_URL = get_env_value("DJANGO_ADMIN_URL", "admin/").strip("/") + "/"
 
-# El fallback local es exclusivamente de desarrollo; DEBUG=False lo apaga aunque
-# SUPPLYHUB_LOCAL_AUTH_ENABLED haya quedado True por error en el entorno.
 SUPPLYHUB_LOCAL_AUTH_ENABLED = DEBUG and get_env_bool(
     "SUPPLYHUB_LOCAL_AUTH_ENABLED", "True"
+)
+CORPORATE_USERNAME_IS_PAYROLL = get_env_bool(
+    "CORPORATE_USERNAME_IS_PAYROLL", "True"
 )
 
 # ---------------------------------------------------------------------------
@@ -99,7 +100,6 @@ if GOOGLE_OAUTH_ENABLED:
         import allauth  # noqa: F401
     except ImportError as exc:
         from django.core.exceptions import ImproperlyConfigured
-
         raise ImproperlyConfigured(
             "GOOGLE_OAUTH_ENABLED=True pero django-allauth no está instalado. "
             "Instala requirements-auth-google.txt"
@@ -118,25 +118,31 @@ if GOOGLE_OAUTH_ENABLED:
         "supplyhub.authentication_login.google_oauth_adapter."
         "CorporateGoogleSocialAccountAdapter"
     )
-    SOCIALACCOUNT_PROVIDERS = {
-        "google": {
-            "SCOPE": ["profile", "email"],
-            "AUTH_PARAMS": {"access_type": "online", "prompt": "select_account"},
-            "OAUTH_PKCE_ENABLED": True,
-        }
+    _google_provider = {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online", "prompt": "select_account"},
+        "OAUTH_PKCE_ENABLED": True,
     }
+    # Permite activar Google solo con .env, sin guardar el Client Secret en SQLite.
+    if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+        _google_provider["APP"] = {
+            "client_id": GOOGLE_CLIENT_ID,
+            "secret": GOOGLE_CLIENT_SECRET,
+            "key": "",
+        }
+    SOCIALACCOUNT_PROVIDERS = {"google": _google_provider}
     SOCIALACCOUNT_STORE_TOKENS = False
     SOCIALACCOUNT_AUTO_SIGNUP = True
     ACCOUNT_EMAIL_VERIFICATION = "none"
     ACCOUNT_SIGNUP_REDIRECT_URL = "/"
     ACCOUNT_LOGOUT_REDIRECT_URL = "/login/"
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http" if DEBUG else "https"
 
 if AD_LDAP_ENABLED:
     try:
         import ldap3  # noqa: F401
     except ImportError as exc:
         from django.core.exceptions import ImproperlyConfigured
-
         raise ImproperlyConfigured(
             "AD_LDAP_ENABLED=True pero ldap3 no está instalado. "
             "Instala requirements-auth-ldap.txt"
@@ -176,7 +182,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# Backends: AD primero, local Django para desarrollo/admin, Google social y nómina.
 _auth_backends = ["django.contrib.auth.backends.ModelBackend"]
 if AD_LDAP_ENABLED:
     _auth_backends.insert(

@@ -1,15 +1,21 @@
 from django.conf import settings
 
+from .menu_service import build_menu
+
 
 def supplyhub_context(request):
     user = getattr(request, "user", None)
     session = getattr(request, "session", {})
+    authenticated = bool(getattr(user, "is_authenticated", False))
+    id_perfil = int(session.get("sh_id_perfil", 0) or 0)
+
     return {
         "supplyhub_name": "SupplyHub",
-        "supplyhub_authenticated": bool(getattr(user, "is_authenticated", False)),
+        "supplyhub_authenticated": authenticated,
         "supplyhub_identity": {
+            "usuario": session.get("sh_usuario", ""),
             "id_usuario": session.get("sh_id_usuario", 0),
-            "id_perfil": session.get("sh_id_perfil", 0),
+            "id_perfil": id_perfil,
             "metodo_acceso": session.get("sh_metodo_acceso", 0),
             "no_nomina": session.get("sh_no_nomina", ""),
             "correo": session.get("sh_correo", ""),
@@ -23,4 +29,5 @@ def supplyhub_context(request):
             "payroll": settings.PAYROLL_AUTH_ENABLED,
             "dataanalytics": settings.DATAANALYTICS_ENABLED,
         },
+        "supplyhub_menu": build_menu(id_perfil) if authenticated else [],
     }

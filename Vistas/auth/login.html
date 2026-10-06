@@ -1,36 +1,55 @@
 {% extends "base.html" %}
 {% block title %}Iniciar sesión | SupplyHub{% endblock %}
 {% block content %}
-<div class="card auth-card">
-    <h1>SupplyHub</h1>
-    <p class="muted">Acceso corporativo y entorno de desarrollo.</p>
+<div class="auth-shell">
+    <div class="auth-heading">
+        <h1>SupplyHub</h1>
+        <p class="muted">Acceso corporativo</p>
+    </div>
 
     {% if messages %}
         {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
     {% endif %}
 
+    <div class="auth-methods">
+        <section class="card auth-method">
+            <div class="method-icon">G</div>
+            <h2>Correo corporativo</h2>
+            <p class="muted">Inicia sesión con Google OAuth. DataAnalytics vinculará tu correo con tu nómina y perfil.</p>
+            {% if google_enabled %}
+                <a class="primary-link" href="/accounts/google/login/">Continuar con Google</a>
+                {% if not google_configured %}<p class="status warn">Falta Client ID/Secret o SocialApp.</p>{% endif %}
+            {% else %}
+                <span class="disabled-link">Continuar con Google</span>
+                <p class="status">Listo en código; pendiente activar Google Cloud y GOOGLE_OAUTH_ENABLED.</p>
+            {% endif %}
+        </section>
+
+        <section class="card auth-method">
+            <div class="method-icon">#</div>
+            <h2>Número de nómina</h2>
+            <p class="muted">La nómina es el usuario corporativo de SupplyHub.</p>
+            <a class="primary-link" href="{% url 'supplyhub:payroll_login' %}">Ingresar con nómina</a>
+            {% if not payroll_enabled %}<p class="status">Pendiente configurar conexión/SP corporativos en .env.</p>{% endif %}
+        </section>
+    </div>
+
+    {% if ad_enabled %}
+    <p class="secondary-auth"><a href="{% url 'supplyhub:ad_login' %}">Acceso alterno por Active Directory</a></p>
+    {% endif %}
+
     {% if local_auth_enabled %}
-    <section>
-        <h2>Acceso local de desarrollo</h2>
+    <details class="card dev-auth">
+        <summary>Acceso local de desarrollo</summary>
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}">
-            <label>Usuario<input name="username" autocomplete="username" required></label>
+            <label>Usuario local<input name="username" autocomplete="username" required></label>
             <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
-            <button type="submit">Entrar</button>
+            <button type="submit">Entrar localmente</button>
         </form>
-        <p class="muted small">Disponible únicamente con DEBUG=True.</p>
-    </section>
-    {% endif %}
-
-    <div class="provider-grid">
-        {% if ad_enabled %}<a class="provider" href="{% url 'supplyhub:ad_login' %}">Active Directory</a>{% endif %}
-        {% if payroll_enabled %}<a class="provider" href="{% url 'supplyhub:payroll_login' %}">Número de nómina</a>{% endif %}
-        {% if google_enabled %}<a class="provider" href="/accounts/google/login/">Google corporativo</a>{% endif %}
-    </div>
-
-    {% if not local_auth_enabled and not ad_enabled and not payroll_enabled and not google_enabled %}
-        <p>No hay un proveedor de autenticación habilitado en este ambiente.</p>
+        <p class="muted small">Solo DEBUG. No representa una identidad corporativa.</p>
+    </details>
     {% endif %}
 </div>
 {% endblock %}

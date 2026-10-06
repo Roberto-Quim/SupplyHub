@@ -1,23 +1,30 @@
-"""Lectura de rutas permitidas por perfil desde DataAnalytics.
-
-Paso 2 deja lista la capa de autorización jerárquica; el Paso 3 la conectará al
-menú HUB/Administración y a guards específicos por submódulo.
-"""
+"""Autorización jerárquica de SupplyHub por rutas/submódulos."""
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlsplit
 
 from django.conf import settings
 
 logger = logging.getLogger("supplyhub")
 
 
-def get_allowed_routes(id_perfil: int) -> set[str] | None:
-    """Retorna rutas permitidas.
+def normalize_route(route: str) -> str:
+    value = str(route or "").strip()
+    if not value:
+        return "/"
+    if "://" in value:
+        value = urlsplit(value).path
+    value = value.split("?", 1)[0].split("#", 1)[0]
+    if not value.startswith("/"):
+        value = "/" + value
+    if not value.endswith("/"):
+        value += "/"
+    return value
 
-    - DATAANALYTICS_ENABLED=False -> None (modo local/dev, sin matriz corporativa).
-    - DataAnalytics activo y sin perfil/error -> set() (fail-closed).
-    """
+
+def get_allowed_routes(id_perfil: int) -> set[str] | None:
+    """None = modo local; set vacío = fail-closed con DataAnalytics activo."""
     if not settings.DATAANALYTICS_ENABLED:
         return None
     if not id_perfil:
@@ -32,7 +39,7 @@ def get_allowed_routes(id_perfil: int) -> set[str] | None:
         sp = settings.DATAANALYTICS_SP_ALLOWED_ROUTES
         cur.execute(f"EXEC {sp} ?", (int(id_perfil),))
         return {
-            str(row[0]).strip()
+            normalize_route(row[0])
             for row in cur.fetchall()
             if row and row[0] is not None and str(row[0]).strip()
         }
@@ -51,4 +58,4 @@ def can_access_route(id_perfil: int, route: str) -> bool:
     allowed = get_allowed_routes(id_perfil)
     if allowed is None:
         return True
-    return route in allowed
+    return normalize_route(route) in allowed
