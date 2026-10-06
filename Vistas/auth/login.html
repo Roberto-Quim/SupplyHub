@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión | SupplyHub{% endblock %}
+{% block content %}
+<div class="card auth-card">
+    <h1>SupplyHub</h1>
+    <p class="muted">Acceso corporativo y entorno de desarrollo.</p>
+
+    {% if messages %}
+        {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
+    {% endif %}
+
+    {% if local_auth_enabled %}
+    <section>
+        <h2>Acceso local de desarrollo</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <label>Usuario<input name="username" autocomplete="username" required></label>
+            <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+            <button type="submit">Entrar</button>
+        </form>
+        <p class="muted small">Disponible únicamente con DEBUG=True.</p>
+    </section>
+    {% endif %}
+
+    <div class="provider-grid">
+        {% if ad_enabled %}<a class="provider" href="{% url 'supplyhub:ad_login' %}">Active Directory</a>{% endif %}
+        {% if payroll_enabled %}<a class="provider" href="{% url 'supplyhub:payroll_login' %}">Número de nómina</a>{% endif %}
+        {% if google_enabled %}<a class="provider" href="/accounts/google/login/">Google corporativo</a>{% endif %}
+    </div>
+
+    {% if not local_auth_enabled and not ad_enabled and not payroll_enabled and not google_enabled %}
+        <p>No hay un proveedor de autenticación habilitado en este ambiente.</p>
+    {% endif %}
+</div>
+{% endblock %}

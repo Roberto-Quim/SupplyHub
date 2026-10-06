@@ -1,7 +1,7 @@
-"""Configuración base de SupplyHub.
+"""Configuración de SupplyHub.
 
-Inspirada en el patrón de Sistema Data Analytics: secretos fuera del código,
-soporte Fernet para variables sensibles y MVC con Vistas/ como templates.
+Paso 2: autenticación desacoplada de autorización, siguiendo el patrón del
+Sistema Data Analytics. Los secretos se leen del entorno y pueden usar fernet:.
 """
 from pathlib import Path
 
@@ -29,6 +29,50 @@ _csrf_origins = get_env_value("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [item.strip() for item in _csrf_origins.split(",") if item.strip()]
 DJANGO_ADMIN_URL = get_env_value("DJANGO_ADMIN_URL", "admin/").strip("/") + "/"
 
+# El fallback local es exclusivamente de desarrollo; DEBUG=False lo apaga aunque
+# SUPPLYHUB_LOCAL_AUTH_ENABLED haya quedado True por error en el entorno.
+SUPPLYHUB_LOCAL_AUTH_ENABLED = DEBUG and get_env_bool(
+    "SUPPLYHUB_LOCAL_AUTH_ENABLED", "True"
+)
+
+# ---------------------------------------------------------------------------
+# Integraciones corporativas: todas opt-in.
+# ---------------------------------------------------------------------------
+DATAANALYTICS_ENABLED = get_env_bool("DATAANALYTICS_ENABLED", "False")
+DATAANALYTICS_SP_VALIDATE = get_env_value(
+    "DATAANALYTICS_SP_VALIDATE", "dbo.GetValidaUsuarioDAsp"
+)
+DATAANALYTICS_SP_VALIDATE_METHOD = get_env_value(
+    "DATAANALYTICS_SP_VALIDATE_METHOD", "dbo.GetValidaUsuarioMetodoDAsp"
+)
+DATAANALYTICS_SP_ADD_ACCESS = get_env_value(
+    "DATAANALYTICS_SP_ADD_ACCESS", "dbo.AddUsuarioAccesoDAsp"
+)
+DATAANALYTICS_SP_ALLOWED_ROUTES = get_env_value(
+    "DATAANALYTICS_SP_ALLOWED_ROUTES", "dbo.GetSubmodulosPermitidosEstadoDAsp"
+)
+
+GOOGLE_OAUTH_ENABLED = get_env_bool("GOOGLE_OAUTH_ENABLED", "False")
+GOOGLE_CLIENT_ID = get_env_value("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = get_env_value("GOOGLE_CLIENT_SECRET", "", strip=False)
+GOOGLE_ALLOWED_DOMAIN = get_env_value("GOOGLE_ALLOWED_DOMAIN", "")
+
+AD_LDAP_ENABLED = get_env_bool("AD_LDAP_ENABLED", "False")
+AD_LDAP_SERVER_URI = get_env_value("AD_LDAP_SERVER_URI", "")
+AD_LDAP_DOMAIN = get_env_value("AD_LDAP_DOMAIN", "")
+AD_LDAP_USER_SEARCH_BASE_DN = get_env_value("AD_LDAP_USER_SEARCH_BASE_DN", "")
+AD_LDAP_USER_SEARCH_FILTER = get_env_value(
+    "AD_LDAP_USER_SEARCH_FILTER", "(sAMAccountName={username})"
+)
+AD_LDAP_USE_SSL = get_env_bool("AD_LDAP_USE_SSL", "True")
+AD_LDAP_START_TLS = get_env_bool("AD_LDAP_START_TLS", "False")
+AD_LDAP_TLS_VALIDATE = get_env_value("AD_LDAP_TLS_VALIDATE", "none").lower()
+
+PAYROLL_AUTH_ENABLED = get_env_bool("PAYROLL_AUTH_ENABLED", "False")
+
+# ---------------------------------------------------------------------------
+# Django apps / middleware
+# ---------------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -49,6 +93,54 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if GOOGLE_OAUTH_ENABLED:
+    try:
+        import allauth  # noqa: F401
+    except ImportError as exc:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured(
+            "GOOGLE_OAUTH_ENABLED=True pero django-allauth no está instalado. "
+            "Instala requirements-auth-google.txt"
+        ) from exc
+
+    INSTALLED_APPS += [
+        "django.contrib.sites",
+        "allauth",
+        "allauth.account",
+        "allauth.socialaccount",
+        "allauth.socialaccount.providers.google",
+    ]
+    MIDDLEWARE += ["allauth.account.middleware.AccountMiddleware"]
+    SITE_ID = 1
+    SOCIALACCOUNT_ADAPTER = (
+        "supplyhub.authentication_login.google_oauth_adapter."
+        "CorporateGoogleSocialAccountAdapter"
+    )
+    SOCIALACCOUNT_PROVIDERS = {
+        "google": {
+            "SCOPE": ["profile", "email"],
+            "AUTH_PARAMS": {"access_type": "online", "prompt": "select_account"},
+            "OAUTH_PKCE_ENABLED": True,
+        }
+    }
+    SOCIALACCOUNT_STORE_TOKENS = False
+    SOCIALACCOUNT_AUTO_SIGNUP = True
+    ACCOUNT_EMAIL_VERIFICATION = "none"
+    ACCOUNT_SIGNUP_REDIRECT_URL = "/"
+    ACCOUNT_LOGOUT_REDIRECT_URL = "/login/"
+
+if AD_LDAP_ENABLED:
+    try:
+        import ldap3  # noqa: F401
+    except ImportError as exc:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured(
+            "AD_LDAP_ENABLED=True pero ldap3 no está instalado. "
+            "Instala requirements-auth-ldap.txt"
+        ) from exc
 
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
@@ -84,6 +176,25 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Backends: AD primero, local Django para desarrollo/admin, Google social y nómina.
+_auth_backends = ["django.contrib.auth.backends.ModelBackend"]
+if AD_LDAP_ENABLED:
+    _auth_backends.insert(
+        0,
+        "supplyhub.authentication_login.active_directory_backend.ActiveDirectoryLDAPBackend",
+    )
+if GOOGLE_OAUTH_ENABLED:
+    _auth_backends.append("allauth.account.auth_backends.AuthenticationBackend")
+if PAYROLL_AUTH_ENABLED:
+    _auth_backends.append(
+        "supplyhub.authentication_login.payroll_backend.PayrollDatabaseBackend"
+    )
+AUTHENTICATION_BACKENDS = _auth_backends
+
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/login/"
+
 LANGUAGE_CODE = "es-mx"
 TIME_ZONE = "America/Mexico_City"
 USE_I18N = True
@@ -106,14 +217,10 @@ SECURE_SSL_REDIRECT = get_env_bool("DJANGO_SECURE_SSL_REDIRECT", "False")
 SESSION_COOKIE_SECURE = get_env_bool("DJANGO_SESSION_COOKIE_SECURE", "False")
 CSRF_COOKIE_SECURE = get_env_bool("DJANGO_CSRF_COOKIE_SECURE", "False")
 SECURE_HSTS_SECONDS = get_env_int("DJANGO_SECURE_HSTS_SECONDS", 0)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = get_env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "False")
+SECURE_HSTS_INCLUDE_SUBDOMAINS = get_env_bool(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "False"
+)
 SECURE_HSTS_PRELOAD = get_env_bool("DJANGO_SECURE_HSTS_PRELOAD", "False")
-
-# Feature flags que la Fase 2 conectará a los backends reales.
-DATAANALYTICS_ENABLED = get_env_bool("DATAANALYTICS_ENABLED", "False")
-GOOGLE_OAUTH_ENABLED = get_env_bool("GOOGLE_OAUTH_ENABLED", "False")
-AD_LDAP_ENABLED = get_env_bool("AD_LDAP_ENABLED", "False")
-PAYROLL_AUTH_ENABLED = get_env_bool("PAYROLL_AUTH_ENABLED", "False")
 
 LOGGING = {
     "version": 1,
@@ -124,6 +231,11 @@ LOGGING = {
             "handlers": ["console"],
             "level": get_env_value("DJANGO_LOG_LEVEL", "INFO").upper(),
             "propagate": False,
-        }
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }

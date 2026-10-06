@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Nómina | SupplyHub{% endblock %}
+{% block content %}
+<div class="card auth-card">
+    <h1>Acceso por nómina</h1>
+    {% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <label>Número de nómina<input name="employee_number" inputmode="numeric" required></label>
+        <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+        <button type="submit">Entrar</button>
+    </form>
+    <p><a href="{% url 'login' %}">Volver</a></p>
+</div>
+{% endblock %}

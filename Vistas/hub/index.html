@@ -3,7 +3,15 @@
 {% block content %}
 <div class="card">
     <h1>SupplyHub</h1>
-    <p>Fundación MVC inicial lista.</p>
-    <p class="muted">RFQ/CAPEX, Seguimiento de OC, autenticación corporativa y permisos se incorporarán por fases.</p>
+    <p>Fundación MVC y autenticación base listas.</p>
+    <p class="muted">Paso 2: identidad autenticada y capa de autorización DataAnalytics preparada.</p>
+
+    <h2>Estado del ambiente</h2>
+    <p><strong>Sesión:</strong> autenticada</p>
+    <p><strong>Origen:</strong> {{ supplyhub_identity.source|default:"sin identificar" }}</p>
+    <p><strong>DataAnalytics:</strong> {% if supplyhub_auth.dataanalytics %}habilitado{% else %}deshabilitado (modo local){% endif %}</p>
+
+    <hr>
+    <p class="muted">En el Paso 3 aparecerán aquí los módulos padre HUB y Administración con menú dinámico por perfil.</p>
 </div>
 {% endblock %}

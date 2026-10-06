@@ -5,15 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}SupplyHub{% endblock %}</title>
     <style>
+        * { box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; color: #1f1f1f; }
-        header { background: #8b0000; color: white; padding: 1rem 1.5rem; }
+        header { background: #8b0000; color: white; padding: 1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+        header form { margin:0; }
+        header button { background:transparent; color:white; border:1px solid rgba(255,255,255,.65); padding:.4rem .7rem; border-radius:7px; cursor:pointer; }
         main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
         .card { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+        .auth-card { max-width: 520px; margin: 3rem auto; }
         .muted { color: #666; }
+        .small { font-size: .9rem; }
+        label { display:block; margin:.8rem 0; font-weight:600; }
+        input { display:block; width:100%; margin-top:.35rem; padding:.7rem; border:1px solid #bbb; border-radius:8px; }
+        button, .provider { display:inline-block; border:0; border-radius:8px; padding:.7rem 1rem; text-decoration:none; cursor:pointer; }
+        form > button { background:#8b0000; color:white; }
+        .provider-grid { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
+        .provider { background:#ececec; color:#222; }
+        .message { background:#fff3cd; padding:.75rem; border-radius:8px; margin:.75rem 0; }
+        .identity { font-size:.9rem; opacity:.9; }
     </style>
 </head>
 <body>
-<header><strong>{{ supplyhub_name|default:"SupplyHub" }}</strong></header>
+<header>
+    <strong>{{ supplyhub_name|default:"SupplyHub" }}</strong>
+    {% if supplyhub_authenticated %}
+    <div style="display:flex;align-items:center;gap:.8rem">
+        <span class="identity">{{ supplyhub_identity.display_name|default:user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Salir</button></form>
+    </div>
+    {% endif %}
+</header>
 <main>{% block content %}{% endblock %}</main>
 </body>
 </html>
