@@ -1,6 +1,5 @@
-"""Modelos de negocio de SupplyHub.
+"""Modelos de negocio expuestos por la app Django SupplyHub."""
 
-La Fase 1 deja deliberadamente el dominio vacío. RFQ/CAPEX y seguimiento de OC
-se incorporan en fases separadas para no mezclar arquitectura con reglas aún
-pendientes de validación de negocio.
-"""
+from .domain.rfq_capex import HistorialDecisionRFQ, HistorialEstadoRFQ, RFQCapex
+
+__all__ = ["RFQCapex", "HistorialEstadoRFQ", "HistorialDecisionRFQ"]

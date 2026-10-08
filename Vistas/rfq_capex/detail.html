@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}RFQ {{ rfq_obj.rfq }} | SupplyHub{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">HUB · RFQ / CAPEX</p>
+        <h1>RFQ #{{ rfq_obj.rfq }}</h1>
+        <p class="muted">{{ rfq_obj.descripcion }}</p>
+    </div>
+    <div style="display:flex;gap:.5rem">
+        <a class="btn-secondary" href="{% url 'supplyhub:rfq_capex' %}">Volver</a>
+        <a class="primary-link" href="{% url 'supplyhub:rfq_capex_edit' rfq_obj.pk %}">Editar</a>
+    </div>
+</div>
+
+<section class="q-card" style="margin-bottom:1rem">
+    <div class="detail-grid">
+        <div class="detail-item"><span class="label">Solicitante</span>{{ rfq_obj.solicitante }}</div>
+        <div class="detail-item"><span class="label">Planta</span>{{ rfq_obj.get_planta_display }}</div>
+        <div class="detail-item"><span class="label">CAPEX / Proyecto</span>{{ rfq_obj.clave_capex|default:"—" }}</div>
+        <div class="detail-item"><span class="label">Tipo CAPEX</span>{{ rfq_obj.tipo_capex|default:"—" }}</div>
+        <div class="detail-item"><span class="label">Fecha arranque</span>{{ rfq_obj.fecha_arranque|date:"d/m/Y"|default:"—" }}</div>
+        <div class="detail-item"><span class="label">Origen</span>{{ rfq_obj.get_origen_display }}</div>
+        <div class="detail-item"><span class="label">Estado</span><span class="pill pill-pink">{{ rfq_obj.get_estado_display }}</span></div>
+        <div class="detail-item"><span class="label">Seguimiento</span>{{ rfq_obj.get_decision_seguimiento_display }}</div>
+        <div class="detail-item"><span class="label">Actualizado por</span>{{ rfq_obj.actualizado_por|default:"—" }}</div>
+    </div>
+</section>
+
+<div class="two-col">
+    <section class="q-card">
+        <h2>Cambiar estado</h2>
+        <form method="post" action="{% url 'supplyhub:rfq_capex_status' rfq_obj.pk %}">
+            {% csrf_token %}
+            {{ estado_form.estado.label_tag }}{{ estado_form.estado }}
+            {{ estado_form.comentario.label_tag }}{{ estado_form.comentario }}
+            <button type="submit">Actualizar estado</button>
+        </form>
+    </section>
+
+    <section class="q-card">
+        <h2>Decisión de seguimiento</h2>
+        <form method="post" action="{% url 'supplyhub:rfq_capex_decision' rfq_obj.pk %}">
+            {% csrf_token %}
+            {{ decision_form.decision.label_tag }}{{ decision_form.decision }}
+            {{ decision_form.motivo.label_tag }}{{ decision_form.motivo }}
+            <button type="submit">Guardar decisión</button>
+        </form>
+    </section>
+</div>
+
+<div class="two-col" style="margin-top:1rem">
+    <section class="q-card">
+        <h2>Historial de estados</h2>
+        <ul class="history-list">
+        {% for event in rfq_obj.historial_estados.all %}
+            <li>
+                <strong>{{ event.get_estado_nuevo_display }}</strong>
+                <div class="muted small">{{ event.creado_en|date:"d/m/Y H:i" }} · {{ event.usuario|default:"sistema" }}</div>
+                {% if event.comentario %}<div>{{ event.comentario }}</div>{% endif %}
+            </li>
+        {% empty %}
+            <li>Sin movimientos.</li>
+        {% endfor %}
+        </ul>
+    </section>
+
+    <section class="q-card">
+        <h2>Historial de decisiones</h2>
+        <ul class="history-list">
+        {% for event in rfq_obj.historial_decisiones.all %}
+            <li>
+                <strong>{{ event.get_decision_nueva_display }}</strong>
+                <div class="muted small">{{ event.creado_en|date:"d/m/Y H:i" }} · {{ event.usuario|default:"sistema" }}</div>
+                {% if event.motivo %}<div>{{ event.motivo }}</div>{% endif %}
+            </li>
+        {% empty %}
+            <li>Sin movimientos.</li>
+        {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} | SupplyHub{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">HUB · RFQ / CAPEX</p>
+        <h1>{{ page_title }}</h1>
+        <p class="muted">RFQ corresponde al número de Pedido/Request.</p>
+    </div>
+    <a class="btn-secondary" href="{% if editing %}{% url 'supplyhub:rfq_capex_detail' rfq_obj.pk %}{% else %}{% url 'supplyhub:rfq_capex' %}{% endif %}">Cancelar</a>
+</div>
+
+<form class="q-card" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+        <label>RFQ / Pedido
+            {{ form.rfq }}
+            {{ form.rfq.errors }}
+        </label>
+        <label>Planta
+            {{ form.planta }}
+            {{ form.planta.errors }}
+        </label>
+        <label>Solicitante
+            {{ form.solicitante }}
+            {{ form.solicitante.errors }}
+        </label>
+        <label>Correo del solicitante
+            {{ form.correo_solicitante }}
+            {{ form.correo_solicitante.errors }}
+        </label>
+        <label>Clave de proyecto / No. CAPEX
+            {{ form.clave_capex }}
+            {{ form.clave_capex.errors }}
+        </label>
+        <label>Tipo de CAPEX
+            {{ form.tipo_capex }}
+            {{ form.tipo_capex.errors }}
+        </label>
+        <label>Fecha de arranque
+            {{ form.fecha_arranque }}
+            {{ form.fecha_arranque.errors }}
+        </label>
+        <label class="span-2">Descripción
+            {{ form.descripcion }}
+            {{ form.descripcion.errors }}
+        </label>
+    </div>
+    <button type="submit">{% if editing %}Guardar cambios{% else %}Crear RFQ{% endif %}</button>
+</form>
+{% endblock %}

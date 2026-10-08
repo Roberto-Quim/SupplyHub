@@ -3,34 +3,31 @@
 {% block content %}
 <div class="auth-shell">
     <div class="auth-heading">
+        <p class="eyebrow">Sistema Interno</p>
         <h1>SupplyHub</h1>
         <p class="muted">Acceso corporativo</p>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
-    {% endif %}
-
     <div class="auth-methods">
-        <section class="card auth-method">
+        <section class="q-card auth-method">
             <div class="method-icon">G</div>
             <h2>Correo corporativo</h2>
-            <p class="muted">Inicia sesión con Google OAuth. DataAnalytics vinculará tu correo con tu nómina y perfil.</p>
+            <p class="muted">Google OAuth valida el correo y DataAnalytics lo vincula con tu nómina y perfil.</p>
             {% if google_enabled %}
                 <a class="primary-link" href="/accounts/google/login/">Continuar con Google</a>
                 {% if not google_configured %}<p class="status warn">Falta Client ID/Secret o SocialApp.</p>{% endif %}
             {% else %}
                 <span class="disabled-link">Continuar con Google</span>
-                <p class="status">Listo en código; pendiente activar Google Cloud y GOOGLE_OAUTH_ENABLED.</p>
+                <p class="status">Listo en código; pendiente activar el cliente en Google Cloud.</p>
             {% endif %}
         </section>
 
-        <section class="card auth-method">
+        <section class="q-card auth-method">
             <div class="method-icon">#</div>
             <h2>Número de nómina</h2>
-            <p class="muted">La nómina es el usuario corporativo de SupplyHub.</p>
+            <p class="muted">La nómina es el usuario corporativo utilizado por SupplyHub.</p>
             <a class="primary-link" href="{% url 'supplyhub:payroll_login' %}">Ingresar con nómina</a>
-            {% if not payroll_enabled %}<p class="status">Pendiente configurar conexión/SP corporativos en .env.</p>{% endif %}
+            {% if not payroll_enabled %}<p class="status">Pendiente configurar conexión y SP corporativos en .env.</p>{% endif %}
         </section>
     </div>
 
@@ -39,7 +36,7 @@
     {% endif %}
 
     {% if local_auth_enabled %}
-    <details class="card dev-auth">
+    <details class="q-card dev-auth">
         <summary>Acceso local de desarrollo</summary>
         <form method="post">
             {% csrf_token %}

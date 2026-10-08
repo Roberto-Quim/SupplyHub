@@ -1,4 +1,5 @@
 """Fachada de funciones públicas Django."""
+
 from Controladores.administracion_controller import (
     catalogos_index,
     modulos_index,
@@ -13,7 +14,15 @@ from Controladores.auth_controller import (
     payroll_login_view,
 )
 from Controladores.hub_controller import hub_index
-from Controladores.modules_controller import rfq_capex_index, seguimiento_oc_index
+from Controladores.modules_controller import seguimiento_oc_index
+from Controladores.rfq_capex_controller import (
+    rfq_capex_create,
+    rfq_capex_decision,
+    rfq_capex_detail,
+    rfq_capex_edit,
+    rfq_capex_index,
+    rfq_capex_status,
+)
 
 __all__ = [
     "main_login_view",
@@ -22,6 +31,11 @@ __all__ = [
     "logout_view",
     "hub_index",
     "rfq_capex_index",
+    "rfq_capex_create",
+    "rfq_capex_edit",
+    "rfq_capex_detail",
+    "rfq_capex_status",
+    "rfq_capex_decision",
     "seguimiento_oc_index",
     "usuarios_index",
     "perfiles_index",

@@ -1,30 +1,11 @@
 {% extends "base.html" %}
 {% block title %}SupplyHub{% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1rem">
-    <h1>SupplyHub</h1>
-    <p>Fundación MVC y autenticación base listas.</p>
-    <p class="muted">Paso 3: HUB y Administración con menú dinámico y guards de permisos.</p>
-    <p><strong>Usuario:</strong> {{ supplyhub_identity.usuario|default:user.username }}</p>
-    <p><strong>Nómina:</strong> {{ supplyhub_identity.no_nomina|default:"—" }}</p>
-    <p><strong>Origen:</strong> {{ supplyhub_identity.source|default:"sin identificar" }}</p>
-    <p><strong>DataAnalytics:</strong> {% if supplyhub_auth.dataanalytics %}habilitado{% else %}deshabilitado (modo local){% endif %}</p>
-</div>
-
-{% for parent in supplyhub_menu %}
-<section style="margin:1.5rem 0">
-    <h2>{{ parent.label }}</h2>
-    <div class="module-grid">
-        {% for item in parent.children %}
-        <article class="card module-card">
-            <p class="eyebrow">{{ parent.label }}</p>
-            <h3><a href="{% url item.url_name %}">{{ item.label }}</a></h3>
-            {% if item.description %}<p class="muted">{{ item.description }}</p>{% endif %}
-        </article>
-        {% endfor %}
+<section class="q-card q-welcome">
+    <div>
+        <div class="q-welcome-brand">Supply<span>Hub</span></div>
+        <h1>Bienvenido al sistema interno</h1>
+        <p class="muted">Selecciona un módulo en el menú superior para comenzar.</p>
     </div>
 </section>
-{% empty %}
-<div class="card"><p>No hay módulos autorizados para este perfil.</p></div>
-{% endfor %}
 {% endblock %}
