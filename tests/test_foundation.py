@@ -23,7 +23,7 @@ class FoundationTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Fundación MVC y autenticación base listas")
+        self.assertContains(response, "Bienvenido al sistema interno")
         self.assertEqual(self.client.session.get("sh_identity_source"), "local-dev")
 
     def test_login_renderiza(self):

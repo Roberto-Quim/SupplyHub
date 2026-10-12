@@ -35,8 +35,11 @@ def normalize_plant(raw: str) -> str | None:
 def actor_from_request(request) -> str:
     """La identidad de negocio es la nómina cuando está disponible."""
     corporate = str(request.session.get("sh_usuario", "") or "").strip()
-    if corporate:
+    
+    # Se ignora "0" porque es el valor por defecto de desarrollo sin nómina
+    if corporate and corporate != "0":
         return corporate
+        
     user = getattr(request, "user", None)
     if user is not None and getattr(user, "is_authenticated", False):
         return str(user.get_username() or "").strip()
