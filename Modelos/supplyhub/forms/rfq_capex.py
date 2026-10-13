@@ -1,52 +1,79 @@
 from django import forms
-
 from supplyhub.models import RFQCapex
-
 
 class RFQCapexForm(forms.ModelForm):
     class Meta:
         model = RFQCapex
-        fields = (
-            "rfq",
-            "descripcion",
-            "fecha_arranque",
-            "solicitante",
-            "correo_solicitante",
-            "planta",
-            "clave_capex",
-            "tipo_capex",
-        )
+        fields = [
+            'rfq', 'solicitante', 'correo_solicitante', 'planta',
+            'clave_capex', 'tipo_capex', 'fecha_arranque', 'descripcion',
+            'comparativa', 'proveedor_seleccionado', 'numero_oc',
+            'fecha_oc', 'fecha_tentativa_entrega', 'fecha_entrega',
+            'en_tiempo', 'tiempo_total'
+        ]
         widgets = {
-            "fecha_arranque": forms.DateInput(attrs={"type": "date"}),
-            "descripcion": forms.Textarea(attrs={"rows": 4}),
+            'rfq': forms.TextInput(attrs={'class': 'q-input', 'placeholder': 'Ej. 228'}),
+            'solicitante': forms.TextInput(attrs={'class': 'q-input'}),
+            'correo_solicitante': forms.EmailInput(attrs={'class': 'q-input'}),
+            'planta': forms.Select(attrs={'class': 'q-input'}),
+            'clave_capex': forms.TextInput(attrs={'class': 'q-input', 'placeholder': 'Ej. Blackbird / 9132'}),
+            'tipo_capex': forms.TextInput(attrs={'class': 'q-input'}),
+            'fecha_arranque': forms.DateInput(attrs={'class': 'q-input', 'type': 'date'}),
+            'descripcion': forms.Textarea(attrs={'class': 'q-input', 'rows': 3}),
+            'comparativa': forms.URLInput(attrs={'class': 'q-input', 'placeholder': 'https://docs.google.com/...'}),
+            'proveedor_seleccionado': forms.TextInput(attrs={'class': 'q-input'}),
+            'numero_oc': forms.TextInput(attrs={'class': 'q-input'}),
+            'fecha_oc': forms.DateInput(attrs={'class': 'q-input', 'type': 'date'}),
+            'fecha_tentativa_entrega': forms.DateInput(attrs={'class': 'q-input', 'type': 'date'}),
+            'fecha_entrega': forms.DateInput(attrs={'class': 'q-input', 'type': 'date'}),
+            'en_tiempo': forms.TextInput(attrs={'class': 'q-input', 'placeholder': 'SI / NO'}),
+            'tiempo_total': forms.NumberInput(attrs={'class': 'q-input', 'placeholder': 'Ej. 41'}),
         }
 
-    def clean_rfq(self):
-        value = (self.cleaned_data.get("rfq") or "").strip()
-        if value.startswith("#"):
-            value = value[1:].strip()
-        return value
 
-    def clean_solicitante(self):
-        return (self.cleaned_data.get("solicitante") or "").strip()
+class RFQEstadoForm(forms.ModelForm):
+    comentario = forms.CharField(widget=forms.TextInput(attrs={'class': 'q-input'}), required=False)
 
-
-class RFQEstadoForm(forms.Form):
-    estado = forms.ChoiceField(choices=RFQCapex.Estado.choices, label="Nuevo estado")
-    comentario = forms.CharField(
-        required=False,
-        max_length=500,
-        widget=forms.Textarea(attrs={"rows": 2}),
-    )
+    class Meta:
+        model = RFQCapex
+        fields = ['estado']
+        widgets = {
+            'estado': forms.Select(attrs={'class': 'q-input'}),
+        }
 
 
-class RFQDecisionForm(forms.Form):
+class RFQDecisionForm(forms.ModelForm):
     decision = forms.ChoiceField(
-        choices=RFQCapex.Decision.choices,
-        label="Decisión de seguimiento",
+        choices=RFQCapex.Decision.choices, 
+        required=False
     )
     motivo = forms.CharField(
-        required=False,
-        max_length=500,
-        widget=forms.Textarea(attrs={"rows": 2}),
+        widget=forms.TextInput(attrs={'class': 'q-input'}), 
+        required=False
     )
+
+    class Meta:
+        model = RFQCapex
+        fields = ['decision_seguimiento', 'proveedor_seleccionado']
+        widgets = {
+            'decision_seguimiento': forms.Select(attrs={'class': 'q-input'}),
+            'proveedor_seleccionado': forms.TextInput(attrs={'class': 'q-input'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hace que decision_seguimiento no sea obligatorio en la validación inicial del form
+        self.fields['decision_seguimiento'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        dec_seg = cleaned_data.get('decision_seguimiento')
+        dec_alt = cleaned_data.get('decision')
+
+        # Si el test o la vista mandó 'decision', lo asignamos a 'decision_seguimiento'
+        final_decision = dec_seg or dec_alt
+        if not final_decision:
+            raise forms.ValidationError("Debe proporcionar una decisión válida.")
+
+        cleaned_data['decision_seguimiento'] = final_decision
+        return cleaned_data

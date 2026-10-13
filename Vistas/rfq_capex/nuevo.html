@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="q-card" style="max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h2>Nuevo RFQ / CAPEX</h2>
+            <p class="muted">RFQ corresponde al número de Pedido/Request.</p>
+        </div>
+        <div>
+            <a href="{% url 'supplyhub:importar_rfq' %}" style="padding: 0.5rem 1rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 0.5rem;">
+                📥 Importar Excel
+            </a>
+            <a href="{% url 'supplyhub:rfq_capex_index' %}" style="padding: 0.5rem 1rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px;">
+                Cancelar
+            </a>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <h3 style="color: #e6007e; border-bottom: 2px solid #f3f4f6; padding-bottom: 0.5rem;">Información General</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label><strong>RFQ / Pedido:</strong></label>
+                {{ form.rfq }}
+            </div>
+            <div>
+                <label><strong>Planta:</strong></label>
+                {{ form.planta }}
+            </div>
+            <div>
+                <label><strong>Solicitante:</strong></label>
+                {{ form.solicitante }}
+            </div>
+            <div>
+                <label><strong>Correo del solicitante:</strong></label>
+                {{ form.correo_solicitante }}
+            </div>
+            <div>
+                <label><strong>Clave de proyecto / No. CAPEX:</strong></label>
+                {{ form.clave_capex }}
+            </div>
+            <div>
+                <label><strong>Tipo de CAPEX:</strong></label>
+                {{ form.tipo_capex }}
+            </div>
+            <div style="grid-column: span 2;">
+                <label><strong>Fecha de arranque:</strong></label>
+                {{ form.fecha_arranque }}
+            </div>
+            <div style="grid-column: span 2;">
+                <label><strong>Descripción:</strong></label>
+                {{ form.descripcion }}
+            </div>
+        </div>
+
+        <h3 style="color: #e6007e; border-bottom: 2px solid #f3f4f6; padding-bottom: 0.5rem;">Control y Seguimiento (Edith)</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="grid-column: span 2;">
+                <label><strong>Comparativa (Link Drive/Docs):</strong></label>
+                {{ form.comparativa }}
+            </div>
+            <div>
+                <label><strong>Proveedor Seleccionado:</strong></label>
+                {{ form.proveedor_seleccionado }}
+            </div>
+            <div>
+                <label><strong># OC:</strong></label>
+                {{ form.numero_oc }}
+            </div>
+            <div>
+                <label><strong>Fecha de OC:</strong></label>
+                {{ form.fecha_oc }}
+            </div>
+            <div>
+                <label><strong>Fecha Tentativa de Entrega:</strong></label>
+                {{ form.fecha_tentativa_entrega }}
+            </div>
+            <div>
+                <label><strong>Fecha de Entrega:</strong></label>
+                {{ form.fecha_entrega }}
+            </div>
+            <div>
+                <label><strong>En Tiempo (SI / NO):</strong></label>
+                {{ form.en_tiempo }}
+            </div>
+            <div>
+                <label><strong>Tiempo Total (Días):</strong></label>
+                {{ form.tiempo_total }}
+            </div>
+        </div>
+
+        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%;">
+            Crear RFQ
+        </button>
+    </form>
+</section>
+{% endblock %}

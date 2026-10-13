@@ -1,6 +1,10 @@
 from django.urls import path
-
 from . import views
+from Controladores.seguimiento_oc_controller import (
+    seguimiento_oc_index,
+    seguimiento_oc_detalle,
+    importar_oc_view
+)
 
 app_name = "supplyhub"
 
@@ -16,7 +20,12 @@ urlpatterns = [
     path("hub/rfq-capex/<int:pk>/estado/", views.rfq_capex_status, name="rfq_capex_status"),
     path("hub/rfq-capex/<int:pk>/decision/", views.rfq_capex_decision, name="rfq_capex_decision"),
 
-    path("hub/seguimiento-oc/", views.seguimiento_oc_index, name="seguimiento_oc"),
+    path("hub/seguimiento-oc/", seguimiento_oc_index, name="seguimiento_oc"),
+    path("hub/seguimiento-oc/importar/", importar_oc_view, name="importar_oc"),
+
+    path("hub/seguimiento-oc/", seguimiento_oc_index, name="seguimiento_oc"),
+    path("hub/seguimiento-oc/<int:pk>/", seguimiento_oc_detalle, name="seguimiento_oc_detalle"),
+    path("hub/seguimiento-oc/importar/", importar_oc_view, name="importar_oc"),
 
     path("administracion/usuarios/", views.usuarios_index, name="admin_usuarios"),
     path("administracion/perfiles/", views.perfiles_index, name="admin_perfiles"),

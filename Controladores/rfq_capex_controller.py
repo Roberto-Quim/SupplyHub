@@ -71,8 +71,13 @@ def rfq_capex_index(request):
 def rfq_capex_create(request):
     form = RFQCapexForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        cleaned_data = form.cleaned_data.copy()
+        # Limpiar el carácter '#' para guardar números limpios de RFQ
+        if "rfq" in cleaned_data and cleaned_data["rfq"]:
+            cleaned_data["rfq"] = str(cleaned_data["rfq"]).replace("#", "").strip()
+
         rfq = create_rfq(
-            cleaned_data=form.cleaned_data,
+            cleaned_data=cleaned_data,
             actor=actor_from_request(request),
         )
         messages.success(request, f"RFQ {rfq.rfq} creado.")
@@ -90,9 +95,13 @@ def rfq_capex_edit(request, pk: int):
     rfq = get_object_or_404(RFQCapex, pk=pk)
     form = RFQCapexForm(request.POST or None, instance=rfq)
     if request.method == "POST" and form.is_valid():
+        cleaned_data = form.cleaned_data.copy()
+        if "rfq" in cleaned_data and cleaned_data["rfq"]:
+            cleaned_data["rfq"] = str(cleaned_data["rfq"]).replace("#", "").strip()
+
         update_rfq(
             instance=rfq,
-            cleaned_data=form.cleaned_data,
+            cleaned_data=cleaned_data,
             actor=actor_from_request(request),
         )
         messages.success(request, f"RFQ {rfq.rfq} actualizado.")
@@ -120,7 +129,10 @@ def rfq_capex_detail(request, pk: int):
             "rfq_obj": rfq,
             "estado_form": RFQEstadoForm(initial={"estado": rfq.estado}),
             "decision_form": RFQDecisionForm(
-                initial={"decision": rfq.decision_seguimiento}
+                initial={
+                    "decision_seguimiento": rfq.decision_seguimiento,
+                    "proveedor_seleccionado": rfq.proveedor_seleccionado,
+                }
             ),
         },
     )
@@ -152,9 +164,11 @@ def rfq_capex_decision(request, pk: int):
     rfq = get_object_or_404(RFQCapex, pk=pk)
     form = RFQDecisionForm(request.POST)
     if form.is_valid():
+        # Obtener la decisión soportando ambas llaves
+        new_decision = form.cleaned_data.get("decision_seguimiento") or form.cleaned_data.get("decision")
         change_decision(
             instance=rfq,
-            new_decision=form.cleaned_data["decision"],
+            new_decision=new_decision,
             actor=actor_from_request(request),
             reason=form.cleaned_data.get("motivo", ""),
         )

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="q-card">
+    <!-- Encabezado de la Orden de Compra -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem;">
+        <div>
+            <h2>Detalle de OC #{{ orden.numero_oc }}</h2>
+            <p style="margin: 0.25rem 0;"><strong>Proveedor:</strong> {{ orden.proveedor }} | <strong>Planta:</strong> {{ orden.get_planta_normalizada_display }}</p>
+            <p style="margin: 0.25rem 0; font-size: 0.9rem; color: #4b5563;">
+                <strong>Fecha Creación PO:</strong> {{ orden.fecha_creacion_po|date:"Y-m-d"|default:"N/A" }} | 
+                <strong>Comprador:</strong> {{ orden.comprador|default:"N/A" }} | 
+                <strong>Estado Autorización:</strong> {{ orden.estatus_autorizacion|default:"N/A" }} | 
+                <strong>Moneda:</strong> {{ orden.moneda|default:"MXN" }}
+            </p>
+        </div>
+        <a href="{% url 'supplyhub:seguimiento_oc' %}" style="padding: 0.5rem 1rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px; font-weight: 500;">
+            ← Volver al listado
+        </a>
+    </div>
+
+    <h3>Partidas / Líneas de Compra (QES)</h3>
+
+    {% if lineas_evaluadas %}
+        {% for item in lineas_evaluadas %}
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; margin-top: 1rem; background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0; color: #e6007e;">
+                    Línea {{ item.objeto.numero_linea }}
+                    {% if item.objeto.release %}(Release: {{ item.objeto.release }}){% endif %}
+                    - {{ item.objeto.codigo_articulo }}
+                </h4>
+                {% if item.evaluacion.vencida %}
+                    <span style="padding: 0.25rem 0.6rem; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                        ⚠️ VENCIDO
+                    </span>
+                {% else %}
+                    <span style="padding: 0.25rem 0.6rem; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                        ✓ AL DÍA
+                    </span>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.9rem; color: #374151;">
+                <div><strong>Descripción:</strong> {{ item.objeto.descripcion }}</div>
+                <div><strong>Unidad de Medida:</strong> {{ item.objeto.unidad_medida|default:"PZA" }}</div>
+                <div><strong>Ubicación (Ship To):</strong> {{ item.objeto.ubicacion_entrega }}</div>
+                <div><strong>Cantidad Solicitada:</strong> {{ item.objeto.cantidad_solicitada }}</div>
+                <div><strong>Cantidad Pendiente (Due):</strong> {{ item.objeto.cantidad_pendiente }}</div>
+                <div><strong>Cantidad Recibida:</strong> {{ item.objeto.cantidad_recibida }}</div>
+                <div><strong>Precio Unitario:</strong> ${{ item.objeto.precio_unitario }} {{ orden.moneda }}</div>
+                <div><strong>Need By Date:</strong> {{ item.objeto.fecha_original|date:"Y-m-d"|default:"Sin fecha" }}</div>
+                <div><strong>Estatus Need:</strong> {{ item.objeto.estatus_necesidad|default:"N/A" }}</div>
+                <div><strong>Correo Proveedor:</strong> {{ item.objeto.correo_proveedor|default:"Sin correo" }}</div>
+                <div><strong>Fecha Revisada:</strong> {{ item.objeto.fecha_revisada|date:"Y-m-d"|default:"Sin cambios" }}</div>
+            </div>
+
+            <!-- Formulario de Seguimiento -->
+            <details style="margin-top: 1rem; padding: 0.75rem; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px;">
+                <summary style="cursor: pointer; font-weight: 600; color: #374151;">+ Registrar respuesta del proveedor</summary>
+                <form method="post" style="margin-top: 1rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="linea_id" value="{{ item.objeto.pk }}">
+                    
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: bold;">Respuesta / Estatus:</label>
+                        <textarea name="respuesta_proveedor" rows="2" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.5rem;" required></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: bold;">Nueva Fecha Propuesta (Opcional):</label>
+                        <input type="date" name="fecha_revisada_propuesta" style="border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem;">
+                    </div>
+
+                    <button type="submit" style="padding: 0.4rem 0.8rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        Guardar Seguimiento
+                    </button>
+                </form>
+            </details>
+
+            <!-- Historial -->
+            {% if item.historial %}
+            <div style="margin-top: 1rem; background: #f3f4f6; padding: 0.75rem; border-radius: 6px;">
+                <strong style="font-size: 0.85rem; color: #374151;">Historial de Seguimiento:</strong>
+                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.85rem; color: #4b5563;">
+                    {% for h in item.historial %}
+                    <li>
+                        <strong>{{ h.fecha_registro|date:"Y-m-d H:i" }}</strong> ({{ h.usuario_responsable }}): {{ h.respuesta_proveedor }}
+                        {% if h.fecha_revisada_propuesta %}
+                            <em style="color: #6b7280;">[Nueva fecha: {{ h.fecha_revisada_propuesta|date:"Y-m-d" }}]</em>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="muted">Esta orden de compra no tiene líneas registradas.</p>
+    {% endif %}
+</section>
+{% endblock %}
