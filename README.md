@@ -1,35 +1,50 @@
 # SupplyHub
 
-SupplyHub será la plataforma interna para unificar dos dominios de Compras:
+SupplyHub es la plataforma interna de gestión y control para unificar dos dominios operativos de Compras:
 
-- **RFQ / CAPEX**: recepción, revisión, decisión de seguimiento e historial de solicitudes de cotización.
-- **Seguimiento de órdenes de compra**: proveedores, supplier sites, ítems, comunicaciones, respuestas y recordatorios.
+- **RFQ / CAPEX (Flujo Edith)**: Recepción, revisión, decisión de seguimiento, estados (solicitada, en cotización, concluida, cancelada), autocompletado inteligente desde correos de *Form Approvals* (Regex) e importación de solicitudes.
+- **Seguimiento de Órdenes de Compra (Flujo Jacqueline)**: Control de compras QES Oracle, proveedores, supplier sites, partidas, columna de Release ($R$), bitácora interactiva de respuestas predeterminadas por fecha y semaforización de vencimientos (excluyendo Macimex Tenango).
 
 La base arquitectónica replica el patrón validado de Sistema Data Analytics:
 
 `URL -> función pública Django -> Controlador -> Servicio -> datos -> Template`
 
-La autenticación corporativa y la autorización por perfiles/módulos se integrarán con DataAnalytics en la Fase 2. Los datos de negocio de SupplyHub permanecen separados de las tablas administrativas de DataAnalytics.
+La autenticación corporativa (Active Directory / Nómina) y la autorización por perfiles/módulos se integran con DataAnalytics. Los datos de negocio de SupplyHub permanecen separados de las tablas administrativas.
 
-## Arranque local de la fundación
+---
 
-```bash
+## Estructura del Proyecto
+
+```text
+SupplyHub/
+├── Controladores/           # Controladores HTTP y orquestación de vistas
+├── Modelos/                 # Aplicación Django principal (models, services, forms)
+│   └── supplyhub/
+│       ├── domain/          # Modelos de dominio ORM (OrdenCompra, LineaOC, RFQCapex, etc.)
+│       ├── services/        # Servicios de negocio, importación Excel y parsers
+│       └── forms/           # Formularios Django
+├── Vistas/                  # Plantillas HTML y componentes UI (templates)
+├── tests/                   # Suite automatizada de pruebas unitarias e integración
+└── Otros/                   # Archivos de configuración (manage.py, settings, urls, static)
+
+##Arranque Local de la Fundación
+##Bash
+# 1. Crear y activar entorno virtual
 python -m venv .venv
 .venv\Scripts\activate
+
+# 2. Instalar dependencias
 pip install -r requirements.txt
+
+# 3. Configurar variables de entorno
 copy .env.example .env
+
+# 4. Verificar integridad y migraciones
 python Otros/manage.py check
 python Otros/manage.py migrate
+
+# 5. Ejecutar la suite de pruebas
+python Otros/manage.py test tests
+
+# 6. Levantar servidor de desarrollo
 python Otros/manage.py runserver
-```
-
-Abrir `http://127.0.0.1:8000/`.
-
-## Seguridad
-
-- `.env`, llaves, tokens y credenciales reales no se versionan.
-- Secretos de configuración pueden almacenarse como `fernet:<token>`.
-- `APP_CONFIG_ENCRYPTION_KEY` vive fuera del repositorio.
-- No se deben subir reportes corporativos reales al repositorio de código final; usar fixtures anonimizados.
-
-Ver `Otros/docs/ARQUITECTURA_SUPPLYHUB.md`.
