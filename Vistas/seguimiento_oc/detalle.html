@@ -27,7 +27,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <h4 style="margin: 0; color: #e6007e;">
                     Línea {{ item.objeto.numero_linea }}
-                    {% if item.objeto.release %}(Release: {{ item.objeto.release }}){% endif %}
+                    {% if item.objeto.release %}(Release: {{ item.objeto.release }}){% else %}(Release: N/A){% endif %}
                     - {{ item.objeto.codigo_articulo }}
                 </h4>
                 {% if item.evaluacion.vencida %}
@@ -41,6 +41,7 @@
                 {% endif %}
             </div>
 
+            <!-- Grilla de Información de la Partida -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.9rem; color: #374151;">
                 <div><strong>Descripción:</strong> {{ item.objeto.descripcion }}</div>
                 <div><strong>Unidad de Medida:</strong> {{ item.objeto.unidad_medida|default:"PZA" }}</div>
@@ -52,24 +53,50 @@
                 <div><strong>Need By Date:</strong> {{ item.objeto.fecha_original|date:"Y-m-d"|default:"Sin fecha" }}</div>
                 <div><strong>Estatus Need:</strong> {{ item.objeto.estatus_necesidad|default:"N/A" }}</div>
                 <div><strong>Correo Proveedor:</strong> {{ item.objeto.correo_proveedor|default:"Sin correo" }}</div>
-                <div><strong>Fecha Revisada:</strong> {{ item.objeto.fecha_revisada|date:"Y-m-d"|default:"Sin cambios" }}</div>
+                
+                <!-- Campos Extendidos Jacqueline -->
+                <div><strong>Días Tarde:</strong> {{ item.objeto.dias_tarde|default:"0" }}</div>
+                <div><strong>Stock / Min-Max:</strong> {{ item.objeto.stock|default:"0" }} ({{ item.objeto.min_max|default:"N/A" }})</div>
+                <div><strong>Embarque Proveedor:</strong> {{ item.objeto.fecha_embarque_proveedor|date:"Y-m-d"|default:"N/A" }}</div>
+                <div><strong>Entrega a Planta:</strong> {{ item.objeto.fecha_entrega_planta|date:"Y-m-d"|default:"N/A" }}</div>
             </div>
 
-            <!-- Formulario de Seguimiento -->
+            <!-- Formulario de Seguimiento por Línea con Plantilla Predeterminada -->
             <details style="margin-top: 1rem; padding: 0.75rem; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px;">
-                <summary style="cursor: pointer; font-weight: 600; color: #374151;">+ Registrar respuesta del proveedor</summary>
+                <summary style="cursor: pointer; font-weight: 600; color: #e6007e;">+ Registrar respuesta del proveedor</summary>
+                
                 <form method="post" style="margin-top: 1rem;">
                     {% csrf_token %}
                     <input type="hidden" name="linea_id" value="{{ item.objeto.pk }}">
                     
                     <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: bold;">⚡ Plantilla Rápida de Respuesta:</label>
+                        <select class="select-plantilla-rapida" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem; margin-bottom: 0.5rem;">
+                            <option value="">-- Seleccionar opción predeterminada --</option>
+                            <option value="Material enviado por proveedor //">Material enviado por proveedor //</option>
+                            <option value="Se re-confirma fecha de entrega //">Se re-confirma fecha de entrega //</option>
+                            <option value="Se solicita estatus //">Se solicita estatus //</option>
+                            <option value="CUENTA BLOQUEADA //">CUENTA BLOQUEADA //</option>
+                            <option value="*URGENTE* //">*URGENTE* //</option>
+                            <option value="Confirma fecha de entrega por correo //">Confirma fecha de entrega por correo //</option>
+                            <option value="Se envía recordatorio de confirmación de recibido //">Se envía recordatorio de confirmación de recibido //</option>
+                            <option value="Llamada con proveedor pdte fecha de entrega //">Llamada con proveedor pdte fecha de entrega //</option>
+                            <option value="Recolección programada //">Recolección programada //</option>
+                        </select>
+                        
                         <label style="display: block; font-size: 0.85rem; font-weight: bold;">Respuesta / Estatus:</label>
-                        <textarea name="respuesta_proveedor" rows="2" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.5rem;" required></textarea>
+                        <textarea name="respuesta_proveedor" class="txt-respuesta-proveedor" rows="2" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.5rem;" required></textarea>
                     </div>
 
-                    <div style="margin-bottom: 0.75rem;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: bold;">Nueva Fecha Propuesta (Opcional):</label>
-                        <input type="date" name="fecha_revisada_propuesta" style="border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; font-weight: bold;">Nueva Fecha Propuesta:</label>
+                            <input type="date" name="fecha_revisada_propuesta" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; font-weight: bold;">Fecha Embarque Proveedor:</label>
+                            <input type="date" name="fecha_embarque_proveedor" style="width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem;">
+                        </div>
                     </div>
 
                     <button type="submit" style="padding: 0.4rem 0.8rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
@@ -78,7 +105,7 @@
                 </form>
             </details>
 
-            <!-- Historial -->
+            <!-- Bitácora de Historial -->
             {% if item.historial %}
             <div style="margin-top: 1rem; background: #f3f4f6; padding: 0.75rem; border-radius: 6px;">
                 <strong style="font-size: 0.85rem; color: #374151;">Historial de Seguimiento:</strong>
@@ -100,4 +127,22 @@
         <p class="muted">Esta orden de compra no tiene líneas registradas.</p>
     {% endif %}
 </section>
+
+<script>
+// Manejar la inserción de la fecha + respuesta predeterminada por línea
+document.querySelectorAll('.select-plantilla-rapida').forEach(select => {
+    select.addEventListener('change', function() {
+        const val = this.value;
+        if (val) {
+            const formContainer = this.closest('form');
+            const txt = formContainer.querySelector('.txt-respuesta-proveedor');
+            const hoy = new Date();
+            const opcionesMes = { month: 'short', day: 'numeric' };
+            const fechaStr = hoy.toLocaleDateString('es-ES', opcionesMes); // Ej: "14 oct"
+            
+            txt.value = `${fechaStr} ${val}`;
+        }
+    });
+});
+</script>
 {% endblock %}

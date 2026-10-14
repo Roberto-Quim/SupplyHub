@@ -4,6 +4,8 @@ from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from supplyhub.services.importacion_rfq_service import importar_rfq_capex_excel
+
 from supplyhub.forms import RFQCapexForm, RFQDecisionForm, RFQEstadoForm
 from supplyhub.models import RFQCapex
 from supplyhub.services.permission_guard import supplyhub_route_required
@@ -17,6 +19,18 @@ from supplyhub.services.rfq_capex_service import (
 
 RFQ_ROUTE = "/hub/rfq-capex/"
 
+# En Controladores/rfq_capex_controller.py
+
+@supplyhub_route_required(RFQ_ROUTE)
+def rfq_capex_import(request):
+    if request.method == "POST" and request.FILES.get("archivo"):
+        resumen = importar_rfq_capex_excel(
+            request.FILES["archivo"],
+            actor_from_request(request)
+        )
+        messages.success(request, f"Importación completada: {resumen['insertados']} creados, {resumen['actualizados']} actualizados.")
+        return redirect("supplyhub:rfq_capex_index")
+    return render(request, "rfq_capex/importar.html")
 
 @supplyhub_route_required(RFQ_ROUTE)
 def rfq_capex_index(request):

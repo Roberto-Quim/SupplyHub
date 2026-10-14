@@ -76,6 +76,14 @@ class LineaOC(models.Model):
     
     cantidad_solicitada = models.DecimalField(max_digits=14, decimal_places=4)
     cantidad_recibida = models.DecimalField(max_digits=14, decimal_places=4, default=0)
+
+    release = models.CharField(max_length=50, blank=True, default='')  # Columna R
+    dias_tarde = models.IntegerField(null=True, blank=True, default=0)
+    stock = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, default=0)
+    min_max = models.CharField(max_length=50, blank=True, default='')
+    fecha_embarque_proveedor = models.DateField(null=True, blank=True)
+    fecha_entrega_planta = models.DateField(null=True, blank=True)
+    comentarios = models.TextField(blank=True, default='')
     
     fecha_original = models.DateField(null=True, blank=True)
     fecha_comprometida = models.DateField(null=True, blank=True)

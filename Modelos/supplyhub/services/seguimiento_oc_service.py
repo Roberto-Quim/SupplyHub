@@ -2,6 +2,21 @@ from django.utils import timezone
 from supplyhub.models import OrdenCompra, LineaOC
 from supplyhub.models import LineaOC, HistorialSeguimiento
 
+PLANTILLAS_RESPUESTA_JACQUI = [
+    "Material enviado por proveedor //",
+    "Se re-confirma fecha de entrega //",
+    "Se solicita estatus //",
+    "CUENTA BLOQUEADA //",
+    "*URGENTE* //",
+    "Confirma fecha de entrega por correo //",
+    "Se envía recordatorio de confirmación de recibido //",
+    "Llamada con proveedor pdte fecha de entrega //",
+    "Recolección programada //",
+    "CAMBIO DE PRECIO //",
+    "BPA EN AUTORIZACIÓN //",
+    "ANTICIPO EN APROBACIÓN //",
+    "Material en planta, pdte ingreso //",
+]
 
 def normalizar_planta(planta_original: str) -> OrdenCompra.PlantaNormalizada:
     if not planta_original:

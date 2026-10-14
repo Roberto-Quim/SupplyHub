@@ -4,11 +4,13 @@
 <section class="q-card" style="max-width: 900px; margin: 0 auto;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <div>
-            <h2>Nuevo RFQ / CAPEX</h2>
+            <h2>{% if editing %}Editar RFQ {{ rfq_obj.rfq }}{% else %}Nuevo RFQ / CAPEX{% endif %}</h2>
             <p class="muted">RFQ corresponde al número de Pedido/Request.</p>
         </div>
         <div>
-            <a href="{% url 'supplyhub:importar_rfq' %}" style="padding: 0.5rem 1rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 0.5rem;">
+            <a href="{% url 'supplyhub:importar_rfq_capex' %}" style="padding: 0.5rem 1rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 0.5rem;">
+    📥 Importar Excel
+</a>style="padding: 0.5rem 1rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 0.5rem;">
                 📥 Importar Excel
             </a>
             <a href="{% url 'supplyhub:rfq_capex_index' %}" style="padding: 0.5rem 1rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px;">
@@ -16,6 +18,17 @@
             </a>
         </div>
     </div>
+
+    <!-- Panel de Autocompletado para Edith (Solo al crear nuevo) -->
+    {% if not editing %}
+    <details style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px;">
+        <summary style="cursor: pointer; font-weight: bold; color: #e6007e;">📋 Autocompletar pegando correo de Form Approvals</summary>
+        <textarea id="textoCorreo" rows="4" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" placeholder="Pega aquí el texto del correo recibido..."></textarea>
+        <button type="button" id="btnAutocompletar" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #e6007e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            ⚡ Extraer y Llenar Campos
+        </button>
+    </details>
+    {% endif %}
 
     <form method="post">
         {% csrf_token %}
@@ -93,8 +106,55 @@
         </div>
 
         <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%;">
-            Crear RFQ
+            {% if editing %}Guardar Cambios{% else %}Crear RFQ{% endif %}
         </button>
     </form>
 </section>
+
+<script>
+document.getElementById('btnAutocompletar')?.addEventListener('click', function() {
+    const text = document.getElementById('textoCorreo').value;
+    
+    // Extracción por patrones de Expresiones Regulares
+    const rfq = text.match(/PEDIDO\s*#?(\d+)/i);
+    if(rfq && document.querySelector('[name="rfq"]')) {
+        document.querySelector('[name="rfq"]').value = rfq[1];
+    }
+
+    const sol = text.match(/Nombre del Solicitante:\s*([^\r\n]+)/i);
+    if(sol && document.querySelector('[name="solicitante"]')) {
+        document.querySelector('[name="solicitante"]').value = sol[1].trim();
+    }
+
+    const email = text.match(/Dirección de correo electrónico:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+    if(email && document.querySelector('[name="correo_solicitante"]')) {
+        document.querySelector('[name="correo_solicitante"]').value = email[1].trim();
+    }
+
+    const capex = text.match(/Clave del proyecto o Numero de CapEx:\s*([^\r\n]+)/i);
+    if(capex && document.querySelector('[name="clave_capex"]')) {
+        document.querySelector('[name="clave_capex"]').value = capex[1].trim();
+    }
+
+    const tipo = text.match(/Tipo de CapEx:\s*([^\r\n]+)/i);
+    if(tipo && document.querySelector('[name="tipo_capex"]')) {
+        document.querySelector('[name="tipo_capex"]').value = tipo[1].trim();
+    }
+
+    const desc = text.match(/Breve descripción de la solicitud de CapEx:\s*([\s\S]*?)(?=Marca:|Modelo:|Cantidad|Proveedores|$)/i);
+    if(desc && document.querySelector('[name="descripcion"]')) {
+        document.querySelector('[name="descripcion"]').value = desc[1].trim();
+    }
+
+    const planta = text.match(/Selecciona Unidad de Negocio:\s*([^\r\n]+)/i);
+    if(planta && document.querySelector('[name="planta"]')) {
+        const val = planta[1].toUpperCase();
+        if(val.includes('TENANGO')) {
+            document.querySelector('[name="planta"]').value = 'MACIMEX_TENANGO';
+        } else {
+            document.querySelector('[name="planta"]').value = 'MAQ_RA';
+        }
+    }
+});
+</script>
 {% endblock %}

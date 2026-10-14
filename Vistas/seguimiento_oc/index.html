@@ -2,90 +2,62 @@
 
 {% block content %}
 <section class="q-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>{{ page_title }}</h2>
-        <a href="{% url 'supplyhub:importar_oc' %}" style="padding: 0.5rem 1rem; background-color: #e6007e; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            + Importar Oracle
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h2>Seguimiento de Órdenes de Compra</h2>
+            <p class="muted">Listado general de compras QES Oracle</p>
+        </div>
+        <a href="{% url 'supplyhub:importar_oc' %}" style="padding: 0.5rem 1rem; background-color: #10b981; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            📥 Importar QES Open PO
         </a>
     </div>
 
-    <!-- Menú Desplegable de Filtro Múltiple de Plantas -->
-    <form id="filtro-plantas-form" method="get" style="margin-bottom: 1.5rem;">
-        <details style="position: relative; display: inline-block;">
-            <summary style="padding: 0.5rem 1rem; background: #6b7280; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; list-style: none; display: inline-flex; align-items: center; gap: 0.5rem;">
-                🔍 PLANTA ▾
-            </summary>
-            <div style="position: absolute; top: 100%; left: 0; background: #ffffff; border: 1px solid #d1d5db; border-radius: 6px; padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; min-width: 240px; margin-top: 0.25rem;">
-                
-                <label style="display: block; font-weight: bold; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" name="planta" value="TODAS" id="chk-todas" {% if 'TODAS' in plantas_seleccionadas %}checked{% endif %} onchange="alCambiarTodas(this)"> (All / Todas)
-                </label>
-
-                {% for key, label in opciones_plantas %}
-                <label style="display: block; padding: 0.25rem 0; cursor: pointer; font-size: 0.9rem; color: #374151;">
-                    <input type="checkbox" name="planta" value="{{ key }}" class="chk-planta" {% if key in plantas_seleccionadas %}checked{% endif %} onchange="alCambiarPlanta(this)"> {{ label }}
-                </label>
+    <!-- Tabla General con Columna R -->
+    <div style="overflow-x: auto;">
+        <table class="q-table">
+            <thead>
+                <tr>
+                    <th>OC</th>
+                    <th style="color: #e6007e;">Release</th>
+                    <th>PROVEEDOR</th>
+                    <th>PLANTA ORIGINAL</th>
+                    <th>PLANTA NORMALIZADA</th>
+                    <th>ESTADO</th>
+                    <th>ACCIÓN</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes %}
+                <tr>
+                    <td><strong>{{ orden.numero_oc }}</strong></td>
+                    <td style="font-weight: bold; text-align: center;">
+                        {% if orden.lineas.first.release %}
+                            <span style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">{{ orden.lineas.first.release }}</span>
+                        {% else %}
+                            <span class="muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ orden.proveedor }}</td>
+                    <td>{{ orden.planta_original }}</td>
+                    <td>{{ orden.get_planta_normalizada_display }}</td>
+                    <td>
+                        <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem;">
+                            Abierta
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'supplyhub:seguimiento_oc_detalle' pk=orden.pk %}" style="color: #e6007e; font-weight: bold; text-decoration: none;">
+                            Ver Detalle →
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center;" class="muted">No hay registros de órdenes de compra.</td>
+                </tr>
                 {% endfor %}
-
-                <button type="submit" style="margin-top: 0.75rem; width: 100%; padding: 0.35rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">
-                    Aplicar Filtro
-                </button>
-            </div>
-        </details>
-    </form>
-
-    <script>
-    function alCambiarTodas(chkTodas) {
-        if (chkTodas.checked) {
-            document.querySelectorAll('.chk-planta').forEach(c => c.checked = false);
-        }
-        document.getElementById('filtro-plantas-form').submit();
-    }
-
-    function alCambiarPlanta(chkPlanta) {
-        if (chkPlanta.checked) {
-            const chkTodas = document.getElementById('chk-todas');
-            if (chkTodas) chkTodas.checked = false;
-        }
-        document.getElementById('filtro-plantas-form').submit();
-    }
-    </script>
-
-    {% if ordenes %}
-    <table class="q-table" style="width: 100%; text-align: left; border-collapse: collapse; margin-top: 1rem;">
-        <thead>
-            <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb;">
-                <th style="padding: 0.75rem;">OC</th>
-                <th style="padding: 0.75rem;">Proveedor</th>
-                <th style="padding: 0.75rem;">Planta Original</th>
-                <th style="padding: 0.75rem;">Planta Normalizada</th>
-                <th style="padding: 0.75rem;">Estado</th>
-                <th style="padding: 0.75rem;">Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for oc in ordenes %}
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 0.75rem; font-weight: bold; color: #e6007e;">{{ oc.numero_oc }}</td>
-                <td style="padding: 0.75rem;">{{ oc.proveedor }}</td>
-                <td style="padding: 0.75rem;">{{ oc.planta_original }}</td>
-                <td style="padding: 0.75rem;">{{ oc.get_planta_normalizada_display }}</td>
-                <td style="padding: 0.75rem;">
-                    <span style="padding: 0.2rem 0.5rem; background: #e5e7eb; border-radius: 4px; font-size: 0.85rem;">
-                        {{ oc.get_estado_display }}
-                    </span>
-                </td>
-                <td style="padding: 0.75rem;">
-                    <a href="{% url 'supplyhub:seguimiento_oc_detalle' oc.pk %}" style="color: #e6007e; text-decoration: none; font-weight: bold;">
-                        Ver Detalle →
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="muted">No se encontraron órdenes para la combinación de plantas seleccionadas.</p>
-    {% endif %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

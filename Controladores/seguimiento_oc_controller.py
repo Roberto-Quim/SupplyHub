@@ -1,34 +1,35 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from datetime import date
 from django.contrib import messages
-from supplyhub.models import OrdenCompra, LineaOC
-from supplyhub.services.importacion_oc_service import importar_oracle_open_po
-from supplyhub.services.seguimiento_oc_service import evaluar_estado_linea, registrar_interaccion_linea
-from supplyhub.services.rfq_capex_service import actor_from_request
-from supplyhub.forms.seguimiento_oc import ImportarOCForm
-from supplyhub.forms.seguimiento_linea import RegistrarSeguimientoForm
+from django.shortcuts import get_object_or_404, redirect, render
+
+from supplyhub.models import HistorialSeguimiento, LineaOC, OrdenCompra
 from supplyhub.services.permission_guard import supplyhub_route_required
+from supplyhub.services.rfq_capex_service import actor_from_request
 
 SEGUIMIENTO_ROUTE = "/hub/seguimiento-oc/"
 
 
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
 def seguimiento_oc_index(request):
-    """Controlador con soporte para filtrado múltiple de plantas limpio"""
+    """Controlador con filtro de plantas excluyendo Tenango para Jacqueline"""
     plantas_raw = request.GET.getlist('planta')
+
+    # Excluir Macimex Tenango y ordenar por fecha_creacion
+    ordenes = OrdenCompra.objects.exclude(
+        planta_normalizada=OrdenCompra.PlantaNormalizada.MACIMEX_TENANGO
+    ).prefetch_related('lineas').order_by('-fecha_creacion')
     
-    # Limpiar la lista para ignorar valores vacíos o 'TODAS'
     plantas_seleccionadas = [p for p in plantas_raw if p and p != 'TODAS']
     
-    ordenes = OrdenCompra.objects.all().order_by('-fecha_creacion')
-    
-    # Si hay plantas específicas seleccionadas, filtramos
     if plantas_seleccionadas:
         ordenes = ordenes.filter(planta_normalizada__in=plantas_seleccionadas)
     else:
-        # Si la lista quedó vacía (o venía 'TODAS'), mostramos todas las plantas
         plantas_seleccionadas = ['TODAS']
 
-    opciones_plantas = OrdenCompra.PlantaNormalizada.choices
+    opciones_plantas = [
+        choice for choice in OrdenCompra.PlantaNormalizada.choices 
+        if choice[0] != OrdenCompra.PlantaNormalizada.MACIMEX_TENANGO
+    ]
 
     return render(request, "seguimiento_oc/index.html", {
         "page_title": "Seguimiento de Órdenes de Compra",
@@ -37,74 +38,106 @@ def seguimiento_oc_index(request):
         "opciones_plantas": opciones_plantas,
     })
 
+
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
-def seguimiento_oc_detalle(request, pk):
-    orden = get_object_or_404(OrdenCompra, pk=pk)
-    
+def seguimiento_oc_detalle(request, pk: int):
+    """Detalle de OC con registro de seguimiento por línea e historial de Jacqui"""
+    orden = get_object_or_404(
+        OrdenCompra.objects.exclude(
+            planta_normalizada=OrdenCompra.PlantaNormalizada.MACIMEX_TENANGO
+        ).prefetch_related('lineas__historial'), 
+        pk=pk
+    )
+
     if request.method == "POST":
         linea_id = request.POST.get("linea_id")
-        linea = get_object_or_404(LineaOC, pk=linea_id, orden=orden)
-        form = RegistrarSeguimientoForm(request.POST)
-        
-        if form.is_valid():
-            usuario = actor_from_request(request)
-            respuesta = form.cleaned_data["respuesta_proveedor"]
-            nueva_fecha = form.cleaned_data["fecha_revisada_propuesta"]
-            
-            registrar_interaccion_linea(linea, respuesta, usuario, nueva_fecha)
-            messages.success(request, f"Interacción registrada correctamente para la línea {linea.numero_linea}.")
-            return redirect("supplyhub:seguimiento_oc_detalle", pk=orden.pk)
+        respuesta_proveedor = request.POST.get("respuesta_proveedor", "").strip()
+        fecha_revisada = request.POST.get("fecha_revisada_propuesta")
+        fecha_embarque = request.POST.get("fecha_embarque_proveedor")
+
+        if linea_id and respuesta_proveedor:
+            linea = get_object_or_404(LineaOC, pk=linea_id, orden=orden)
+            usuario_actor = actor_from_request(request)
+
+            # 1. Crear entrada en la bitácora de historial
+            HistorialSeguimiento.objects.create(
+                linea_oc=linea,
+                respuesta_proveedor=respuesta_proveedor,
+                fecha_revisada_propuesta=fecha_revisada if fecha_revisada else None,
+                usuario_responsable=usuario_actor,
+            )
+
+            # 2. Actualizar campos extendidos en la línea de OC
+            if fecha_revisada:
+                linea.fecha_revisada = fecha_revisada
+            if fecha_embarque:
+                linea.fecha_embarque_proveedor = fecha_embarque
+
+            linea.comentarios = respuesta_proveedor
+            linea.save()
+
+            messages.success(request, f"Seguimiento guardado para la Línea {linea.numero_linea}.")
+            return redirect("supplyhub:seguimiento_oc_detalle", pk=pk)
         else:
-            messages.error(request, "Error al guardar el seguimiento. Verifica los datos.")
-    
-    lineas = orden.lineas.all().order_by('numero_linea')
+            messages.error(request, "Es necesario ingresar un comentario o respuesta.")
+
     lineas_evaluadas = []
-    
-    for linea in lineas:
-        evaluacion = evaluar_estado_linea(linea)
+    hoy = date.today()
+
+    for linea in orden.lineas.all():
+        fecha_evaluar = linea.fecha_revisada or linea.fecha_original
+        vencida = False
+        dias_retraso = 0
+
+        if linea.cantidad_pendiente > 0 and fecha_evaluar and fecha_evaluar < hoy:
+            vencida = True
+            dias_retraso = (hoy - fecha_evaluar).days
+
         lineas_evaluadas.append({
             "objeto": linea,
-            "evaluacion": evaluacion,
-            "historial": linea.historial.all()
+            "evaluacion": {
+                "vencida": vencida,
+                "dias_retraso": dias_retraso,
+                "surtido": linea.cantidad_pendiente <= 0,
+            },
+            "historial": linea.historial.all().order_by('-fecha_registro'),
         })
 
-    form = RegistrarSeguimientoForm()
-
     return render(request, "seguimiento_oc/detalle.html", {
-        "page_title": f"Detalle de OC #{orden.numero_oc}",
+        "page_title": f"Detalle OC #{orden.numero_oc}",
         "orden": orden,
         "lineas_evaluadas": lineas_evaluadas,
-        "form": form
     })
+
 
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
 def importar_oc_view(request):
-    """Controlador para manejar la subida del Excel de Oracle"""
-    if request.method == "POST":
-        form = ImportarOCForm(request.POST, request.FILES)
-        if form.is_valid():
-            archivo = request.FILES["archivo_excel"]
-            usuario = actor_from_request(request)
+    """Vista para importar reporte Excel QES Open PO"""
+    if request.method == "POST" and request.FILES.get("archivo"):
+        # Importación dinámica para resolver el nombre exacto de la función
+        import supplyhub.services.importacion_oc_service as imp_service
+        
+        # Detecta la función principal de importación automáticamente
+        fn_importar = getattr(
+            imp_service, 
+            'importar_oc_excel', 
+            getattr(imp_service, 'importar_ordenes_compra', None)
+        )
+        
+        if fn_importar:
+            resumen = fn_importar(
+                request.FILES["archivo"],
+                actor_from_request(request)
+            )
+            messages.success(
+                request,
+                f"Importación completada: {resumen.get('insertados', 0)} órdenes creadas, {resumen.get('actualizados', 0)} actualizadas."
+            )
+        else:
+            messages.error(request, "Servicio de importación no encontrado.")
             
-            try:
-                resumen = importar_oracle_open_po(archivo, usuario)
-                messages.success(
-                    request, 
-                    f"Importación completada. OC nuevas: {resumen['insertados_oc']} | "
-                    f"Líneas nuevas: {resumen['insertados_linea']} | "
-                    f"Líneas actualizadas: {resumen['actualizados']}."
-                )
-                if resumen["errores"]:
-                    messages.warning(request, f"Se omitieron {len(resumen['errores'])} filas con errores.")
-                    
-            except Exception as e:
-                messages.error(request, f"Error crítico al importar el archivo: {str(e)}")
-                
-            return redirect("supplyhub:seguimiento_oc")
-    else:
-        form = ImportarOCForm()
+        return redirect("supplyhub:seguimiento_oc")
 
     return render(request, "seguimiento_oc/importar.html", {
-        "form": form,
-        "page_title": "Importar Reporte Oracle"
+        "page_title": "Importar QES Open PO"
     })

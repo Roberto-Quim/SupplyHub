@@ -11,6 +11,7 @@ class RFQCapex(models.Model):
         APROBACION = "APROBACION", "Aprobación"
         ORDENADA = "ORDENADA", "Ordenada"
         CONCLUIDA = "CONCLUIDA", "Concluida"
+        CANCELADO = "CANCELADO", "Cancelado"
 
     class Decision(models.TextChoices):
         PENDIENTE = "PENDIENTE", "Pendiente de revisión"
