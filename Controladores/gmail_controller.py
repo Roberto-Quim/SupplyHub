@@ -1,10 +1,11 @@
 import secrets
 import time
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from supplyhub.models import GmailMailbox, GmailResponse
+from supplyhub.models import GmailMailbox, GmailResponse, GmailSyncRun
 from supplyhub.services import gmail_service as gmail
 from supplyhub.services.permission_guard import supplyhub_route_required
 
@@ -19,6 +20,9 @@ class ReviewForm(forms.Form):
 def index(request):
     return render(request,'gmail/index.html',{
         'mailboxes':GmailMailbox.objects.filter(owner=request.user),
+        'runs':GmailSyncRun.objects.filter(mailbox__owner=request.user).select_related('mailbox')[:30],
+        'pending_count':GmailResponse.objects.filter(mailbox__owner=request.user,status='PENDING').count(),
+        'configuration_ready': bool(settings.GMAIL_ENABLED and settings.GMAIL_CLIENT_ID and settings.GMAIL_CLIENT_SECRET and gmail.is_encryption_configured()),
         'responses':GmailResponse.objects.filter(mailbox__owner=request.user).select_related('mailbox').prefetch_related('candidates__orden').order_by('-received_at')[:100],
     })
 

@@ -150,6 +150,9 @@ class GmailMailbox(models.Model):
     email = models.EmailField(unique=True)
     encrypted_tokens = models.TextField()
     last_sync = models.DateTimeField(null=True, blank=True)
+    sync_started = models.DateTimeField(null=True, blank=True)
+    retry_after = models.DateTimeField(null=True, blank=True)
+    is_demo = models.BooleanField(default=False)
 
 
 class GmailResponse(models.Model):
@@ -165,3 +168,15 @@ class GmailResponse(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['mailbox','message_id'], name='gmail_mailbox_message_unique')]
+
+
+class GmailSyncRun(models.Model):
+    mailbox = models.ForeignKey(GmailMailbox, on_delete=models.CASCADE, related_name='sync_runs')
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='RUNNING', choices=[('RUNNING','En curso'),('SUCCESS','Completada'),('FAILED','Fallida')])
+    added = models.PositiveIntegerField(default=0)
+    error = models.CharField(max_length=250, blank=True)
+
+    class Meta:
+        ordering = ['-started_at','-pk']

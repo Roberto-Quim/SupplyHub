@@ -48,3 +48,9 @@ python Otros/manage.py test tests
 
 # 6. Levantar servidor de desarrollo
 python Otros/manage.py runserver
+
+## Gmail y pruebas de operación
+- [Step 7: conexión Gmail y revisión de respuestas](STEP7_FILES.md)
+- [Step 8: panel de operación, reintentos y demostración local](STEP8_FILES.md)
+
+Las conexiones reales requieren configurar OAuth de Google y autorización individual. La demostración de Step 8 permite probar la revisión sin Gmail.

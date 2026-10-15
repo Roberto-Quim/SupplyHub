@@ -2,7 +2,7 @@
 import base64
 import json
 import re
-from datetime import datetime, timezone as utc_timezone
+from datetime import datetime, timedelta, timezone as utc_timezone
 from email.utils import getaddresses
 from urllib.parse import urlencode
 
@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from supplyhub.models import GmailMailbox, GmailResponse, LineaOC, HistorialSeguimiento
+from supplyhub.models import GmailMailbox, GmailResponse, GmailSyncRun, LineaOC, HistorialSeguimiento
 from supplyhub.security.encryption_fernet import encrypt_text, decrypt_text, is_encryption_configured
 from supplyhub.services.seguimiento_oc_service import registrar_interaccion_linea
 
@@ -137,7 +137,7 @@ def ingest(mailbox, message):
     return created
 
 
-def sync(mailbox):
+def _sync(mailbox):
     token = access_token(mailbox)
     headers = {'Authorization':'Bearer '+token}
     query = 'in:inbox newer_than:30d -from:(@questum.com)'
@@ -181,3 +181,33 @@ def apply_response(response_id, owner, line_id, comment, revised_date=None):
     response.applied_history=history
     response.save(update_fields=['status','applied_history'])
     return history
+
+
+def sync(mailbox):
+    """Consulta manual con exclusión concurrente, bitácora y espera entre fallos."""
+    now = timezone.now()
+    with transaction.atomic():
+        current = GmailMailbox.objects.select_for_update().get(pk=mailbox.pk)
+        if current.is_demo or not current.encrypted_tokens:
+            raise GmailError('Este buzón no tiene una conexión Gmail activa.')
+        if current.sync_started and current.sync_started > now - timedelta(minutes=30):
+            raise GmailError('Hay una consulta en curso. Espera a que termine.')
+        if current.retry_after and current.retry_after > now:
+            raise GmailError('Espera un minuto antes de volver a intentar la consulta.')
+        GmailSyncRun.objects.filter(mailbox=current,status='RUNNING').update(
+            status='FAILED',finished_at=now,error='Consulta interrumpida; se liberó después de 30 minutos.')
+        current.sync_started=now
+        current.save(update_fields=['sync_started'])
+        run=GmailSyncRun.objects.create(mailbox=current)
+    try:
+        added=_sync(current)
+    except Exception as exc:
+        # No persistir excepciones de red: podrían contener tokens o URLs sensibles.
+        GmailSyncRun.objects.filter(pk=run.pk).update(status='FAILED',finished_at=timezone.now(),error='No se completó la consulta. Revisa configuración, conexión o autorización. Puede haber respuestas guardadas antes del fallo; el reintento no las duplica.')
+        GmailMailbox.objects.filter(pk=current.pk,sync_started=now).update(sync_started=None,retry_after=timezone.now()+timedelta(seconds=60))
+        if isinstance(exc,GmailError):
+            raise
+        raise GmailError('No se pudo completar la consulta. Revisa el historial y vuelve a intentar.') from exc
+    GmailSyncRun.objects.filter(pk=run.pk).update(status='SUCCESS',finished_at=timezone.now(),added=added)
+    GmailMailbox.objects.filter(pk=current.pk,sync_started=now).update(sync_started=None,retry_after=None)
+    return added
