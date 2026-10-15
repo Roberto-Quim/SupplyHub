@@ -1,10 +1,18 @@
 from datetime import date
+from django import forms
+from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from supplyhub.models import HistorialSeguimiento, LineaOC, OrdenCompra
 from supplyhub.services.permission_guard import supplyhub_route_required
 from supplyhub.services.rfq_capex_service import actor_from_request
+
+class SeguimientoForm(forms.Form):
+    respuesta_proveedor = forms.CharField()
+    fecha_revisada_propuesta = forms.DateField(required=False)
+    fecha_embarque_proveedor = forms.DateField(required=False)
+
 
 SEGUIMIENTO_ROUTE = "/hub/seguimiento-oc/"
 
@@ -51,35 +59,22 @@ def seguimiento_oc_detalle(request, pk: int):
 
     if request.method == "POST":
         linea_id = request.POST.get("linea_id")
-        respuesta_proveedor = request.POST.get("respuesta_proveedor", "").strip()
-        fecha_revisada = request.POST.get("fecha_revisada_propuesta")
-        fecha_embarque = request.POST.get("fecha_embarque_proveedor")
-
-        if linea_id and respuesta_proveedor:
+        form = SeguimientoForm(request.POST)
+        if linea_id and form.is_valid():
             linea = get_object_or_404(LineaOC, pk=linea_id, orden=orden)
-            usuario_actor = actor_from_request(request)
-
-            # 1. Crear entrada en la bitácora de historial
-            HistorialSeguimiento.objects.create(
-                linea_oc=linea,
-                respuesta_proveedor=respuesta_proveedor,
-                fecha_revisada_propuesta=fecha_revisada if fecha_revisada else None,
-                usuario_responsable=usuario_actor,
-            )
-
-            # 2. Actualizar campos extendidos en la línea de OC
-            if fecha_revisada:
-                linea.fecha_revisada = fecha_revisada
-            if fecha_embarque:
-                linea.fecha_embarque_proveedor = fecha_embarque
-
-            linea.comentarios = respuesta_proveedor
-            linea.save()
-
+            from supplyhub.services.seguimiento_oc_service import registrar_interaccion_linea
+            with transaction.atomic():
+                registrar_interaccion_linea(
+                    linea, form.cleaned_data['respuesta_proveedor'],
+                    actor_from_request(request),
+                    form.cleaned_data['fecha_revisada_propuesta'],
+                )
+                if form.cleaned_data['fecha_embarque_proveedor']:
+                    linea.fecha_embarque_proveedor = form.cleaned_data['fecha_embarque_proveedor']
+                    linea.save(update_fields=['fecha_embarque_proveedor'])
             messages.success(request, f"Seguimiento guardado para la Línea {linea.numero_linea}.")
             return redirect("supplyhub:seguimiento_oc_detalle", pk=pk)
-        else:
-            messages.error(request, "Es necesario ingresar un comentario o respuesta.")
+        messages.error(request, "Revisa la respuesta y las fechas del seguimiento.")
 
     lineas_evaluadas = []
     hoy = date.today()
@@ -113,31 +108,19 @@ def seguimiento_oc_detalle(request, pk: int):
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
 def importar_oc_view(request):
     """Vista para importar reporte Excel QES Open PO"""
-    if request.method == "POST" and request.FILES.get("archivo"):
-        # Importación dinámica para resolver el nombre exacto de la función
-        import supplyhub.services.importacion_oc_service as imp_service
-        
-        # Detecta la función principal de importación automáticamente
-        fn_importar = getattr(
-            imp_service, 
-            'importar_oc_excel', 
-            getattr(imp_service, 'importar_ordenes_compra', None)
-        )
-        
-        if fn_importar:
-            resumen = fn_importar(
-                request.FILES["archivo"],
-                actor_from_request(request)
-            )
-            messages.success(
-                request,
-                f"Importación completada: {resumen.get('insertados', 0)} órdenes creadas, {resumen.get('actualizados', 0)} actualizadas."
-            )
+    from supplyhub.forms.seguimiento_oc import ImportarOCForm
+    from supplyhub.services.importacion_oc_service import importar_oracle_open_po
+    form = ImportarOCForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            resumen = importar_oracle_open_po(form.cleaned_data['archivo'], actor_from_request(request))
+        except (ValueError, OSError):
+            form.add_error('archivo', 'No se pudo leer el archivo Excel.')
         else:
-            messages.error(request, "Servicio de importación no encontrado.")
-            
-        return redirect("supplyhub:seguimiento_oc")
-
+            messages.success(request, f"Importación: {resumen['insertados_oc']} órdenes creadas, {resumen['insertados_linea']} partidas creadas, {resumen['actualizados']} actualizadas.")
+            for error in resumen['errores']:
+                messages.error(request, error)
+            return redirect("supplyhub:seguimiento_oc")
     return render(request, "seguimiento_oc/importar.html", {
-        "page_title": "Importar QES Open PO"
+        "page_title": "Importar QES Open PO", "form": form,
     })

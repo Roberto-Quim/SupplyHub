@@ -62,7 +62,6 @@ class LineaOC(models.Model):
         CANCELADA = "CANCELADA", "Cancelada"
 
     orden = models.ForeignKey(OrdenCompra, on_delete=models.CASCADE, related_name="lineas")
-    release = models.CharField(max_length=50, blank=True, default="")
     numero_linea = models.CharField(max_length=50)
     codigo_articulo = models.CharField(max_length=100)
     descripcion = models.TextField()

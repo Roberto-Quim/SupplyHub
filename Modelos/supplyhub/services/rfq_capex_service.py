@@ -8,6 +8,9 @@ from django.db import transaction
 from supplyhub.models import HistorialDecisionRFQ, HistorialEstadoRFQ, RFQCapex
 
 
+CONTROL_FIELDS = ('comparativa', 'proveedor_seleccionado', 'numero_oc', 'fecha_oc', 'fecha_tentativa_entrega', 'fecha_entrega', 'en_tiempo', 'tiempo_total')
+
+
 def _plain(value: str) -> str:
     value = unicodedata.normalize("NFKD", value or "")
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
@@ -64,6 +67,10 @@ def create_rfq(*, cleaned_data: dict, actor: str) -> RFQCapex:
         creado_por=actor,
         actualizado_por=actor,
     )
+    for field in CONTROL_FIELDS:
+        if field in cleaned_data:
+            setattr(rfq, field, cleaned_data[field])
+    rfq.save()
     HistorialEstadoRFQ.objects.create(
         rfq=rfq,
         estado_anterior="",
@@ -93,7 +100,11 @@ def update_rfq(*, instance: RFQCapex, cleaned_data: dict, actor: str) -> RFQCape
         "clave_capex",
         "tipo_capex",
     ):
-        setattr(instance, field, cleaned_data.get(field))
+        if field in cleaned_data:
+            setattr(instance, field, cleaned_data[field])
+    for field in CONTROL_FIELDS:
+        if field in cleaned_data:
+            setattr(instance, field, cleaned_data[field])
     instance.planta_origen = dict(RFQCapex.Planta.choices).get(
         instance.planta, instance.planta
     )

@@ -24,11 +24,14 @@ RFQ_ROUTE = "/hub/rfq-capex/"
 @supplyhub_route_required(RFQ_ROUTE)
 def rfq_capex_import(request):
     if request.method == "POST" and request.FILES.get("archivo"):
-        resumen = importar_rfq_capex_excel(
-            request.FILES["archivo"],
-            actor_from_request(request)
-        )
+        try:
+            resumen = importar_rfq_capex_excel(request.FILES["archivo"], actor_from_request(request))
+        except (ValueError, OSError):
+            messages.error(request, "No se pudo leer el archivo Excel.")
+            return render(request, "rfq_capex/importar.html")
         messages.success(request, f"Importación completada: {resumen['insertados']} creados, {resumen['actualizados']} actualizados.")
+        for error in resumen['errores']:
+            messages.error(request, error)
         return redirect("supplyhub:rfq_capex_index")
     return render(request, "rfq_capex/importar.html")
 

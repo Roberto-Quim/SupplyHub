@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="q-card">
+<h2>Importar RFQ / CAPEX</h2>
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<label>Archivo Excel (.xlsx) <input type="file" name="archivo" accept=".xlsx" required></label>
+<button type="submit">Importar</button>
+</form>
+<a href="{% url 'supplyhub:rfq_capex' %}">Volver al listado</a>
+</section>
+{% endblock %}

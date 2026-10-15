@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db import transaction
 from supplyhub.models import OrdenCompra, LineaOC
 from supplyhub.models import LineaOC, HistorialSeguimiento
 
@@ -85,6 +86,7 @@ def calcular_vencimiento_linea(linea: LineaOC) -> bool:
     return fecha_vigente < hoy
 
 
+@transaction.atomic
 def registrar_interaccion_linea(linea: LineaOC, respuesta: str, usuario: str, nueva_fecha=None) -> HistorialSeguimiento:
     """
     Registra una entrada en el historial de seguimiento y actualiza la fecha revisada de la línea.
@@ -101,6 +103,7 @@ def registrar_interaccion_linea(linea: LineaOC, respuesta: str, usuario: str, nu
     if nueva_fecha:
         linea.fecha_revisada = nueva_fecha
     
+    linea.comentarios = respuesta
     linea.comentario_actual = respuesta
     linea.ultima_interaccion = historial.fecha_registro
     linea.save()

@@ -32,3 +32,16 @@ Implementación del parser de notificaciones por correo de Form Approvals para e
 ## Ejecución de Pruebas
 ```bash
 python Otros/manage.py test tests
+```
+
+## Correcciones de integración (14 de octubre de 2026)
+- Carga OC conectada a `importar_oracle_open_po`, con formulario de archivo y resumen real.
+- Captura de seguimiento validada y atómica, con bitácora y campos actuales sincronizados.
+- Pantalla de importación RFQ y manejo de errores de lectura/filas.
+- Persistencia de campos de control CAPEX al crear y editar.
+- Dependencias Excel declaradas y transacción por fila para aislar errores.
+- Regresiones cubiertas en `tests/test_step56_integration.py`.
+
+Step 7 queda pendiente de definición. No se incluye automatización de correos/recordatorios en esta corrección.
+
+Validación ejecutada: 25 pruebas aprobadas; `manage.py check` sin errores; `makemigrations --check --dry-run` sin cambios pendientes. Pruebas locales con SQLite, sin servicios corporativos ni navegador.
