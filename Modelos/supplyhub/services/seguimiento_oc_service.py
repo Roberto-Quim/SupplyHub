@@ -1,7 +1,62 @@
 from django.utils import timezone
 from supplyhub.models import OrdenCompra, LineaOC
 from supplyhub.models import LineaOC, HistorialSeguimiento
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from supplyhub.models import HistorialSeguimiento
+from supplyhub.services.permission_guard import supplyhub_route_required
 
+SEGUIMIENTO_ROUTE = "/hub/seguimiento-oc/"
+
+SEGUIMIENTO_ROUTE = "/hub/seguimiento-oc/"
+
+@supplyhub_route_required(SEGUIMIENTO_ROUTE)
+def seguimiento_oc_detalle(request, pk: int):
+    orden = get_object_or_404(
+        OrdenCompra.objects.exclude(
+            planta_normalizada="MACIMEX TENANGO"
+        ).prefetch_related('lineas__historial'),
+        pk=pk
+    )
+
+    lineas_con_historial = []
+    for linea in orden.lineas.all():
+        # Filtramos únicamente el historial con anulación lógica activa
+        historial_activo = linea.historial.filter(activo=True).order_by('-fecha_registro')
+        lineas_con_historial.append({
+            'objeto': linea,
+            'historial': historial_activo,
+        })
+
+    return render(request, "seguimiento_oc/detalle.html", {
+        "page_title": f"Detalle OC #{orden.numero_oc}",
+        "orden": orden,
+        "lineas": lineas_con_historial,
+    })
+
+@supplyhub_route_required(SEGUIMIENTO_ROUTE)
+def eliminar_historial_view(request, pk: int):
+    """Soft delete to preserve audit history without removing records."""
+    historial = get_object_or_404(HistorialSeguimiento, pk=pk)
+    orden_pk = historial.linea.orden.pk
+
+    historial.activo = False
+    historial.save()
+
+    messages.success(request, "Entrada del historial anulada correctamente de la bitácora.")
+    return redirect("supplyhub:seguimiento_oc_detalle", pk=orden_pk)
+
+@supplyhub_route_required(SEGUIMIENTO_ROUTE)
+def eliminar_historial_view(request, pk: int):
+    """Anulación lógica para auditar la bitácora sin pérdida de datos"""
+    historial = get_object_or_404(HistorialSeguimiento, pk=pk)
+    orden_pk = historial.linea.orden.pk
+
+    historial.activo = False
+    historial.save()
+
+    messages.success(request, "Entrada del historial anulada correctamente de la bitácora.")
+    return redirect("supplyhub:seguimiento_oc_detalle", pk=orden_pk)
 PLANTILLAS_RESPUESTA_JACQUI = [
     "Material enviado por proveedor //",
     "Se re-confirma fecha de entrega //",
@@ -85,24 +140,41 @@ def calcular_vencimiento_linea(linea: LineaOC) -> bool:
     return fecha_vigente < hoy
 
 
-def registrar_interaccion_linea(linea: LineaOC, respuesta: str, usuario: str, nueva_fecha=None) -> HistorialSeguimiento:
+def registrar_interaccion_linea(
+    linea,
+    respuesta,
+    fecha_revisada=None,
+    usuario="Sistema",
+    fuente=None,
+    nueva_fecha=None,
+):
     """
-    Registra una entrada en el historial de seguimiento y actualiza la fecha revisada de la línea.
+    Registra una entrada en la bitácora de seguimiento de la línea de OC
+    y sincroniza el comentario y la fecha prometida en la línea.
     """
+    fecha_final = fecha_revisada or nueva_fecha
+
+    if fuente is None:
+        fuente = HistorialSeguimiento.Fuente.MANUAL
+
     historial = HistorialSeguimiento.objects.create(
         linea=linea,
         respuesta_proveedor=respuesta,
+        fecha_revisada_propuesta=fecha_final,
         usuario_responsable=usuario,
-        fuente=HistorialSeguimiento.Fuente.MANUAL,
-        fecha_revisada_propuesta=nueva_fecha
+        fuente=fuente,
+        activo=True,
     )
 
-    # Actualizar campos denormalizados en la línea de compra
-    if nueva_fecha:
-        linea.fecha_revisada = nueva_fecha
-    
-    linea.comentario_actual = respuesta
-    linea.ultima_interaccion = historial.fecha_registro
+    # Actualizar la línea de OC
+    linea.comentarios = respuesta
+    if hasattr(linea, "comentario_actual"):
+        linea.comentario_actual = respuesta
+
+    if fecha_final:
+        linea.fecha_revisada = fecha_final
+
     linea.save()
+    linea.refresh_from_db()  # Garantiza que las propiedades calculadas se actualicen
 
     return historial

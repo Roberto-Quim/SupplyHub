@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from supplyhub.models import HistorialSeguimiento, LineaOC, OrdenCompra
 from supplyhub.services.permission_guard import supplyhub_route_required
 from supplyhub.services.rfq_capex_service import actor_from_request
+from supplyhub.services.seguimiento_oc_service import registrar_interaccion_linea
+
 
 SEGUIMIENTO_ROUTE = "/hub/seguimiento-oc/"
 
@@ -51,35 +53,23 @@ def seguimiento_oc_detalle(request, pk: int):
 
     if request.method == "POST":
         linea_id = request.POST.get("linea_id")
-        respuesta_proveedor = request.POST.get("respuesta_proveedor", "").strip()
-        fecha_revisada = request.POST.get("fecha_revisada_propuesta")
-        fecha_embarque = request.POST.get("fecha_embarque_proveedor")
+        respuesta_proveedor = request.POST.get("respuesta_proveedor")
+        fecha_revisada_propuesta = request.POST.get("fecha_revisada_propuesta") or None
+        
+        linea = get_object_or_404(LineaOC, pk=linea_id)
+        usuario_actor = getattr(request.user, "username", "Sistema")
 
-        if linea_id and respuesta_proveedor:
-            linea = get_object_or_404(LineaOC, pk=linea_id, orden=orden)
-            usuario_actor = actor_from_request(request)
+        # Usar el servicio centralizado que ya corregiste:
+        registrar_interaccion_linea(
+            linea=linea,
+            respuesta=respuesta_proveedor,
+            fecha_revisada=fecha_revisada_propuesta,
+            usuario=usuario_actor,
+            fuente=HistorialSeguimiento.Fuente.MANUAL,
+        )
 
-            # 1. Crear entrada en la bitácora de historial
-            HistorialSeguimiento.objects.create(
-                linea_oc=linea,
-                respuesta_proveedor=respuesta_proveedor,
-                fecha_revisada_propuesta=fecha_revisada if fecha_revisada else None,
-                usuario_responsable=usuario_actor,
-            )
-
-            # 2. Actualizar campos extendidos en la línea de OC
-            if fecha_revisada:
-                linea.fecha_revisada = fecha_revisada
-            if fecha_embarque:
-                linea.fecha_embarque_proveedor = fecha_embarque
-
-            linea.comentarios = respuesta_proveedor
-            linea.save()
-
-            messages.success(request, f"Seguimiento guardado para la Línea {linea.numero_linea}.")
-            return redirect("supplyhub:seguimiento_oc_detalle", pk=pk)
-        else:
-            messages.error(request, "Es necesario ingresar un comentario o respuesta.")
+        messages.success(request, f"Interacción registrada correctamente para la línea {linea.numero_linea}.")
+        return redirect("supplyhub:seguimiento_oc_detalle", pk=pk)
 
     lineas_evaluadas = []
     hoy = date.today()

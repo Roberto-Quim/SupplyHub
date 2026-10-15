@@ -8,12 +8,6 @@ from django.db import models
 from django.utils import timezone
 from .domain.rfq_capex import RFQCapex
 
-# --- MODELOS EXISTENTES DE FEAT 4 ---
-# (Asegúrate de tener aquí tu clase RFQCapex original y sus historiales)
-# class RFQCapex(models.Model):
-#     ...
-
-# --- NUEVOS MODELOS DE FEAT 5 ---
 class OrdenCompra(models.Model):
     class EstadoOC(models.TextChoices):
         ABIERTA = "ABIERTA", "Abierta"
@@ -110,23 +104,23 @@ class LineaOC(models.Model):
 
 class HistorialSeguimiento(models.Model):
     class Fuente(models.TextChoices):
-        MANUAL = "MANUAL", "Captura Manual"
-        IMPORTACION = "IMPORTACION", "Importación de Archivo"
-        CORREO = "CORREO", "Correo Electrónico"
+        MANUAL = "MANUAL", "Manual"
+        CORREO = "CORREO", "Correo"
+        SISTEMA = "SISTEMA", "Sistema"
 
     linea = models.ForeignKey(LineaOC, on_delete=models.CASCADE, related_name="historial")
     respuesta_proveedor = models.TextField()
-    fecha_interaccion = models.DateTimeField(default=timezone.now)
-    usuario_responsable = models.CharField(max_length=100)
-    fuente = models.CharField(max_length=20, choices=Fuente.choices, default=Fuente.MANUAL)
-    
     fecha_revisada_propuesta = models.DateField(null=True, blank=True)
-    estado_validacion = models.BooleanField(default=True)
-    
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    usuario_responsable = models.CharField(max_length=150, default="Sistema")
+    fuente = models.CharField(max_length=20, choices=Fuente.choices, default=Fuente.MANUAL)
+    activo = models.BooleanField(default=True, verbose_name="Registro Activo")
 
     class Meta:
         ordering = ['-fecha_registro']
+
+    def __str__(self):
+        return f"Historial #{self.pk} - Línea {self.linea_id}"
 
 
 class RecordatorioOC(models.Model):
