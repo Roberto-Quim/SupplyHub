@@ -16,9 +16,18 @@ from Controladores.rfq_capex_controller import (
     rfq_capex_import,
 )
 
+from Controladores import gmail_controller as gmail
+
 app_name = "supplyhub"
 
 urlpatterns = [
+    path('hub/correos/partida/<int:pk>/proveedor/', gmail.supplier_email, name='gmail_supplier_email'),
+    path('hub/correos/', gmail.index, name='gmail_index'),
+    path('hub/correos/conectar/', gmail.start, name='gmail_start'),
+    path('hub/correos/callback/', gmail.callback, name='gmail_callback'),
+    path('hub/correos/<int:pk>/sincronizar/', gmail.sync, name='gmail_sync'),
+    path('hub/correos/<int:pk>/desconectar/', gmail.disconnect, name='gmail_disconnect'),
+    path('hub/correos/respuestas/<int:pk>/revisar/', gmail.review, name='gmail_review'),
     path("", views.hub_index, name="hub_index"),
     path("ad-login/", views.active_directory_login_view, name="ad_login"),
     path("nomina-login/", views.payroll_login_view, name="payroll_login"),

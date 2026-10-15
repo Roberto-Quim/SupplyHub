@@ -61,6 +61,12 @@
                 <div><strong>Entrega a Planta:</strong> {{ item.objeto.fecha_entrega_planta|date:"Y-m-d"|default:"N/A" }}</div>
             </div>
 
+            <form method="post" action="{% url 'supplyhub:gmail_supplier_email' item.objeto.pk %}">
+                {% csrf_token %}
+                <label>Correo externo del proveedor <input type="email" name="email" value="{{ item.objeto.correo_proveedor }}"></label>
+                <button type="submit">Guardar correo para vincular respuestas</button>
+            </form>
+
             <!-- Formulario de Seguimiento por Línea con Plantilla Predeterminada -->
             <details style="margin-top: 1rem; padding: 0.75rem; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px;">
                 <summary style="cursor: pointer; font-weight: 600; color: #e6007e;">+ Registrar respuesta del proveedor</summary>

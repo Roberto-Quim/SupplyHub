@@ -144,3 +144,24 @@ class RecordatorioOC(models.Model):
         default=EstadoRecordatorio.PROGRAMADO
     )
     intentos = models.IntegerField(default=0)
+
+class GmailMailbox(models.Model):
+    owner = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    email = models.EmailField(unique=True)
+    encrypted_tokens = models.TextField()
+    last_sync = models.DateTimeField(null=True, blank=True)
+
+
+class GmailResponse(models.Model):
+    mailbox = models.ForeignKey(GmailMailbox, on_delete=models.CASCADE)
+    message_id = models.CharField(max_length=255)
+    sender = models.EmailField()
+    subject = models.CharField(max_length=500)
+    body = models.TextField()
+    received_at = models.DateTimeField()
+    candidates = models.ManyToManyField(LineaOC, blank=True)
+    status = models.CharField(max_length=20, default='PENDING', choices=[('PENDING','Pendiente'),('APPLIED','Aplicada'),('DISMISSED','Descartada')])
+    applied_history = models.OneToOneField(HistorialSeguimiento, null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['mailbox','message_id'], name='gmail_mailbox_message_unique')]

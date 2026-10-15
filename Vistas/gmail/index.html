@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="q-card">
+<h2>Correos de proveedores</h2>
+<p>Conecta tu buzón @questum.com. Solo se leen correos; cada actualización requiere tu revisión.</p>
+<p>Se omiten remitentes internos. Para encontrar respuestas, registra el correo del proveedor en la partida y usa referencias OC o PO en el asunto o cuerpo.</p>
+<form method="post" action="{% url 'supplyhub:gmail_start' %}">{% csrf_token %}<button type="submit">Conectar Gmail</button></form>
+{% for mailbox in mailboxes %}
+<article><h3>{{ mailbox.email }}</h3><p>Última consulta: {{ mailbox.last_sync|default:"Sin consultas" }}</p>
+{% if mailbox.encrypted_tokens %}
+<form method="post" action="{% url 'supplyhub:gmail_sync' mailbox.pk %}">{% csrf_token %}<button type="submit">Consultar últimos 30 días</button></form>
+<form method="post" action="{% url 'supplyhub:gmail_disconnect' mailbox.pk %}">{% csrf_token %}<button type="submit">Desconectar buzón</button></form>
+{% else %}<p>Buzón desconectado. Conéctalo otra vez para consultar.</p>{% endif %}
+</article>{% endfor %}
+</section>
+{% for response in responses %}
+<section class="q-card">
+<h3>{{ response.subject }}</h3>
+<p>{{ response.sender }} · {{ response.received_at }} · {{ response.get_status_display }}</p>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ response.body }}</pre>
+{% if response.status == 'PENDING' %}
+<form method="post" action="{% url 'supplyhub:gmail_review' response.pk %}">{% csrf_token %}
+<label>Partida <select name="line_id" required>{% for line in response.candidates.all %}<option value="{{ line.pk }}">OC {{ line.orden.numero_oc }} / Release {{ line.release|default:"—" }} / Línea {{ line.numero_linea }}: {{ line.descripcion }}</option>{% endfor %}</select></label>
+<label>Respuesta a registrar <textarea name="comment" rows="4" required>{{ response.body }}</textarea></label>
+<label>Nueva fecha confirmada (opcional) <input type="date" name="revised_date"></label>
+<button type="submit" name="action" value="apply">Confirmar e incorporar a bitácora</button>
+<button type="submit" name="action" value="dismiss" formnovalidate>Descartar</button>
+</form>
+{% endif %}
+</section>
+{% empty %}<section class="q-card"><p>No hay respuestas de proveedores para revisar.</p></section>{% endfor %}
+{% endblock %}

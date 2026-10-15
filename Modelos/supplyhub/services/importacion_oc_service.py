@@ -77,12 +77,15 @@ def importar_oracle_open_po(archivo_excel, usuario_responsable: str) -> dict:
                             'cantidad_recibida': cant_rec if pd.notnull(cant_rec) else 0,
                             'precio_unitario': unit_price if pd.notnull(unit_price) else 0,
                             'estatus_necesidad': str(row.get('Status need', '')).strip(),
-                            'correo_proveedor': correo if correo != 'nan' else '',
                             'fecha_original': fecha_original,
                             'fecha_comprometida': fecha_original,
                         }
                     )
                 
+                    if correo and correo.lower() != 'nan':
+                        linea.correo_proveedor = correo
+                        linea.save(update_fields=['correo_proveedor'])
+
                     if linea_creada:
                         resumen["insertados_linea"] += 1
                     else:

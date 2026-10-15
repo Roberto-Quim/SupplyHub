@@ -244,3 +244,9 @@ LOGGING = {
         },
     },
 }
+
+# Conexión de buzones; independiente del inicio de sesión Google.
+GMAIL_ENABLED = get_env_bool('GMAIL_ENABLED', 'False')
+GMAIL_CLIENT_ID = get_env_value('GMAIL_CLIENT_ID', '')
+GMAIL_CLIENT_SECRET = get_env_value('GMAIL_CLIENT_SECRET', '', strip=False)
+GMAIL_REDIRECT_URI = get_env_value('GMAIL_REDIRECT_URI', 'http://127.0.0.1:8000/hub/correos/callback/')
