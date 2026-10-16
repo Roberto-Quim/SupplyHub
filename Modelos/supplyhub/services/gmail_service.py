@@ -157,8 +157,6 @@ def _sync(mailbox):
         page = data.get('nextPageToken')
         if not page:
             break
-    mailbox.last_sync = timezone.now()
-    mailbox.save(update_fields=['last_sync'])
     return added
 
 
@@ -173,10 +171,7 @@ def apply_response(response_id, owner, line_id, comment, revised_date=None):
         raise GmailError('Selecciona una partida candidata válida.') from exc
     if not comment.strip():
         raise GmailError('Escribe la respuesta que deseas registrar.')
-    history = registrar_interaccion_linea(line,comment.strip(),owner.get_username(),revised_date)
-    history.fuente = HistorialSeguimiento.Fuente.CORREO
-    history.fecha_interaccion = response.received_at
-    history.save(update_fields=['fuente','fecha_interaccion'])
+    history = registrar_interaccion_linea(line,comment.strip(),owner.get_username(),revised_date,fuente=HistorialSeguimiento.Fuente.CORREO,fecha_interaccion=response.received_at)
     response.status='APPLIED'
     response.applied_history=history
     response.save(update_fields=['status','applied_history'])
@@ -202,12 +197,14 @@ def sync(mailbox):
     try:
         added=_sync(current)
     except Exception as exc:
+        from .administracion_service import record_error
+        record_error('Consulta Gmail')
         # No persistir excepciones de red: podrían contener tokens o URLs sensibles.
         GmailSyncRun.objects.filter(pk=run.pk).update(status='FAILED',finished_at=timezone.now(),error='No se completó la consulta. Revisa configuración, conexión o autorización. Puede haber respuestas guardadas antes del fallo; el reintento no las duplica.')
         GmailMailbox.objects.filter(pk=current.pk,sync_started=now).update(sync_started=None,retry_after=timezone.now()+timedelta(seconds=60))
         if isinstance(exc,GmailError):
             raise
         raise GmailError('No se pudo completar la consulta. Revisa el historial y vuelve a intentar.') from exc
-    GmailSyncRun.objects.filter(pk=run.pk).update(status='SUCCESS',finished_at=timezone.now(),added=added)
-    GmailMailbox.objects.filter(pk=current.pk,sync_started=now).update(sync_started=None,retry_after=None)
+    GmailSyncRun.objects.filter(pk=run.pk,status='RUNNING').update(status='SUCCESS',finished_at=timezone.now(),added=added)
+    GmailMailbox.objects.filter(pk=current.pk,sync_started=now).update(sync_started=None,retry_after=None,last_sync=timezone.now())
     return added

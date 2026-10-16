@@ -41,7 +41,7 @@ def parsear_texto_correo_rfq(texto: str) -> dict:
             datos['planta'] = 'MAQ_RA'
 
     # Extract Descripción
-    desc_match = re.search(r'Breve descripción de la solicitud de CapEx:\s*(.*?)(?=Marca:|Modelo:|Cantidad|Provedores|$)', texto, re.IGNORECASE | re.DOTALL)
+    desc_match = re.search(r'Breve descripción de la solicitud de CapEx:\s*(.*?)(?=Marca:|Modelo:|Cantidad|Proveedores|Provedores|$)', texto, re.IGNORECASE | re.DOTALL)
     if desc_match:
         datos['descripcion'] = desc_match.group(1).strip()
 

@@ -528,3 +528,18 @@ tbody tr:hover { background: #fffafd; }
     .filter-bar { grid-template-columns: 1fr; }
     .page-header { flex-direction: column; }
 }
+
+/* Administración: paneles, tablas compactas y formularios como DataAnalytics. */
+.admin-form { max-width: 840px; }
+.admin-form p { display: grid; gap: .4rem; margin-bottom: 1rem; }
+.admin-form input, .admin-form select, .admin-form textarea { max-width: 100%; }
+.admin-form label { font-weight: 600; }
+.admin-form #id_modulos { max-height: 350px; overflow: auto; border: 1px solid #e5e7eb; padding: .75rem; border-radius: 6px; }
+.admin-form #id_modulos label { font-weight: 400; }
+.admin-actions, .admin-parent, .admin-pagination { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.admin-actions form { margin: 0; }
+.admin-parent { margin: 1rem 0; }
+.admin-pagination { justify-content: space-between; padding-top: 1rem; font-size: .9rem; }
+.table-wrap { overflow-x: auto; }
+
+.admin-form input[type="checkbox"] { width: auto; margin-right: .5rem; }

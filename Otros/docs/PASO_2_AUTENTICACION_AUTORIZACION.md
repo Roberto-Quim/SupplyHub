@@ -1,3 +1,5 @@
+> Documento histórico. Consultar [arquitectura vigente](../../docs/ARQUITECTURA.md). IdUsuario identifica una asignación; la nómina se lee de NoNomina.
+
 # Paso 2 — Autenticación y autorización
 
 Objetivo: separar **identidad** (Django local en desarrollo, AD, nómina o Google)

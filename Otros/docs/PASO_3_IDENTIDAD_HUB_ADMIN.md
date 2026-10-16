@@ -1,3 +1,5 @@
+> Documento histórico. Consultar [arquitectura vigente](../../docs/ARQUITECTURA.md). IdUsuario identifica una asignación; la nómina se lee de NoNomina.
+
 # Paso 3 — Identidad corporativa, HUB y Administración
 
 ## Regla de identidad

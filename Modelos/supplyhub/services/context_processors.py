@@ -7,8 +7,16 @@ def supplyhub_context(request):
     user = getattr(request, "user", None)
     session = getattr(request, "session", {})
     authenticated = bool(getattr(user, "is_authenticated", False))
-    id_perfil = int(session.get("sh_id_perfil", 0) or 0)
+    try:
+        id_perfil = int(session.get("sh_id_perfil", 0) or 0)
+    except (TypeError, ValueError):
+        id_perfil = 0
 
+    menu = build_menu(id_perfil) if authenticated else []
+    from .administracion_service import may_manage
+    for parent in menu:
+        parent['children'] = [item for item in parent['children'] if not item['route'].startswith('/administracion/') or may_manage(request, item['route'], ti_only=item['route'].endswith('/error-logs/'))]
+    menu = [parent for parent in menu if parent['children']]
     return {
         "supplyhub_name": "SupplyHub",
         "supplyhub_authenticated": authenticated,
@@ -29,5 +37,5 @@ def supplyhub_context(request):
             "payroll": settings.PAYROLL_AUTH_ENABLED,
             "dataanalytics": settings.DATAANALYTICS_ENABLED,
         },
-        "supplyhub_menu": build_menu(id_perfil) if authenticated else [],
+        "supplyhub_menu": menu,
     }

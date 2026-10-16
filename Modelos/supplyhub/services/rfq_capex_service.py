@@ -26,7 +26,8 @@ def normalize_plant(raw: str) -> str | None:
     if "tenango" in value:
         return RFQCapex.Planta.MACIMEX_TENANGO
     if (
-        "maq ra" in value
+        value in {"ramos", "ira", "mcm", "maq_ra"}
+        or "maq ra" in value
         or "maquinados ramos" in value
         or "ramos arizpe" in value
         or value == "maqra"
@@ -148,18 +149,21 @@ def change_decision(
     new_decision: str,
     actor: str,
     reason: str = "",
+    selected_supplier: str | None = None,
 ) -> RFQCapex:
     valid = {value for value, _ in RFQCapex.Decision.choices}
     if new_decision not in valid:
         raise ValueError("Decisión RFQ no válida.")
     previous = instance.decision_seguimiento
-    if previous == new_decision:
+    supplier_changed = selected_supplier is not None and selected_supplier != instance.proveedor_seleccionado
+    if previous == new_decision and not supplier_changed:
         return instance
-
+    if selected_supplier is not None:
+        instance.proveedor_seleccionado = selected_supplier
     instance.decision_seguimiento = new_decision
     instance.actualizado_por = actor
     instance.save(
-        update_fields=("decision_seguimiento", "actualizado_por", "actualizado_en")
+        update_fields=("decision_seguimiento", "proveedor_seleccionado", "actualizado_por", "actualizado_en")
     )
     HistorialDecisionRFQ.objects.create(
         rfq=instance,

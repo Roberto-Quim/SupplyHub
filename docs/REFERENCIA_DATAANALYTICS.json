@@ -1,0 +1,19 @@
+{
+  "source": "C:/x/proyectos/SistemaDataAnalytics",
+  "head": "23b1004d204e7f6b54585400d264a309edee3b97",
+  "sha256": {
+    "Controladores/usuarios_controller.py": "2e769e52614db1490c34949abfc481d6bf55a3e27ff1e3eb6ed38f26e2b491c1",
+    "Controladores/perfiles_controller.py": "4f6ed66f83e12fa407fe17e81f040c6054bfc725bc0cdc44c2aeeb1b22db285f",
+    "Controladores/modulos_controller.py": "4d12a3fc5b7952949e64bd151520fb3290b23b4e606a9701e8782c815fe72d50",
+    "Controladores/error_logs_controller.py": "e2c98f464d288d649784bdb2355c77f095c505ce83096ce824eef05dcdc6f2b4",
+    "Vistas/usuarios/index.html": "d20e42874a172d90b9a048e29db94e53a1cf92520de67930b06ea5fbc1facae8",
+    "Vistas/perfiles/index.html": "9a713395ce221f0bf617784711dc47551999511dc133df73387dd42f7a23cf77",
+    "Vistas/modulos/index.html": "c71897164d74ebbe8cf45f56f4e12bb2d14707a9452daa6be2a08bd0bfe0f563",
+    "Vistas/error_logs/index.html": "5f5192017af80c4002988a4f7089c757e523187ee94cdabfd0c4fedc814915b4",
+    "Modelos/servicios/dataanalytics_modulos_service.py": "d44101f97cf944a949ae082d6b9f7bd7df70437af855f23594c187ab7f317340",
+    "Modelos/servicios/dataanalytics_perfiles_service.py": "c56722eba8fb3d5fa6b73b7ad86ee54b8d5ac31b75ff01a927b2441a17bbd53c",
+    "Modelos/servicios/dataanalytics_user_admin_service.py": "9336f85e47c26264c9d779110f7d5a32b1a86dcb380a63b43509889a46f4831d",
+    "Modelos/servicios/dataanalytics_usuario_metodos_service.py": "fac3351d2892020c0ab3d49db7ace32e2ddb3bd749958668d705aea732429eef",
+    "Modelos/servicios/dataanalytics_usuario_plantas_service.py": "2cac397d2b34e6c544a5784867a23f342cc8e09dae62d2589474b98c8e233efa"
+  }
+}

@@ -1,3 +1,5 @@
+> Documento histórico de esta entrega. Estado y plan vigentes: [docs/ESTADO.md](docs/ESTADO.md) y [docs/PLAN.md](docs/PLAN.md).
+
 # STEP 8 — Operación local y preparación de pruebas
 
 Implementado sobre `feat/step7-gmail`. Esta rama incluye Step 7 y las correcciones de Step 5/6. No implica que main haya sido actualizado ni que Gmail real esté validado.

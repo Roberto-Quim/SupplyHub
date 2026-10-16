@@ -188,6 +188,7 @@ def rfq_capex_decision(request, pk: int):
             new_decision=new_decision,
             actor=actor_from_request(request),
             reason=form.cleaned_data.get("motivo", ""),
+            selected_supplier=form.cleaned_data.get("proveedor_seleccionado", ""),
         )
         messages.success(request, "Decisión de seguimiento actualizada.")
     else:

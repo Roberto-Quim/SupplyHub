@@ -9,6 +9,10 @@ def importar_oracle_open_po(archivo_excel, usuario_responsable: str) -> dict:
     except Exception:
         df = pd.read_excel(archivo_excel)
     
+    required = {"Po Number", "Line Number", "Supplier Name", "Ship To Org Name"}
+    if not required.issubset(df.columns):
+        raise ValueError("El reporte no contiene las columnas obligatorias de Open PO.")
+
     resumen = {"procesados": 0, "insertados_oc": 0, "insertados_linea": 0, "actualizados": 0, "errores": []}
 
     with transaction.atomic():
@@ -63,6 +67,10 @@ def importar_oracle_open_po(archivo_excel, usuario_responsable: str) -> dict:
 
                     correo = str(row.get('Correo Proveedor', '')).strip()
 
+                    site = row.get('Supplier Site')
+                    if pd.notna(site) and str(site).strip():
+                        orden.supplier_site = str(site).strip()
+                        orden.save(update_fields=['supplier_site'])
                     linea, linea_creada = LineaOC.objects.update_or_create(
                         orden=orden,
                         release=release,
@@ -93,6 +101,6 @@ def importar_oracle_open_po(archivo_excel, usuario_responsable: str) -> dict:
 
                     resumen["procesados"] += 1
             except Exception as e:
-                resumen["errores"].append(f"Fila {index + 2}: {str(e)}")
+                resumen['errores'].append(f'Fila {index + 2}: formato o datos inválidos; no se importó la fila.')
 
     return resumen

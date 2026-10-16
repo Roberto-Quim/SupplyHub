@@ -36,3 +36,8 @@ Thumbs.db
 # Local scratch
 .tmp/
 tmp/
+
+# Respaldos y archivos auxiliares locales de SQLite
+db.sqlite3.respaldo-*
+*.sqlite3-wal
+*.sqlite3-shm

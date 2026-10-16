@@ -1,3 +1,5 @@
+> Documento histórico de esta entrega. Estado y plan vigentes: [docs/ESTADO.md](docs/ESTADO.md) y [docs/PLAN.md](docs/PLAN.md).
+
 # SupplyHub — Fix identidad + Paso 3
 
 Este overlay parte de `feat/supplyhub-auth`.

@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from Controladores import administracion_controller as administration
+from Controladores import seguimiento_oc_controller as tracking
 from Controladores.seguimiento_oc_controller import (
     seguimiento_oc_index,
     seguimiento_oc_detalle,
@@ -21,6 +23,18 @@ from Controladores import gmail_controller as gmail
 app_name = "supplyhub"
 
 urlpatterns = [
+    path('hub/seguimiento-oc/<int:pk>/historial/<int:history_pk>/editar/', tracking.editar_historial_view, name='editar_historial'),
+    path('hub/seguimiento-oc/inventario/', tracking.importar_min_max_view, name='importar_min_max'),
+    path('hub/seguimiento-oc/recordatorios/', tracking.recordatorios_view, name='recordatorios'),
+    path('hub/seguimiento-oc/<int:pk>/historial/<int:history_pk>/anular/', tracking.anular_historial_view, name='anular_historial'),
+    path('hub/seguimiento-oc/<int:pk>/supplier-site/', tracking.asignar_supplier_site, name='asignar_supplier_site'),
+    path('administracion/usuarios/<int:pk>/editar/', administration.usuarios_index, name='admin_usuarios_editar'),
+    path('administracion/perfiles/<int:pk>/editar/', administration.perfiles_index, name='admin_perfiles_editar'),
+    path('administracion/modulos/<int:pk>/editar/', administration.modulos_index, name='admin_modulos_editar'),
+    path('administracion/modulos/padre/crear/', administration.modulo_padre, name='admin_modulo_padre_crear'),
+    path('administracion/modulos/padre/<int:pk>/', administration.modulo_padre, name='admin_modulo_padre'),
+    path('administracion/supplier-sites/<int:pk>/editar/', administration.supplier_sites_index, name='admin_supplier_sites_editar'),
+    path('administracion/error-logs/', administration.error_logs_index, name='admin_error_logs'),
     path('hub/correos/partida/<int:pk>/proveedor/', gmail.supplier_email, name='gmail_supplier_email'),
     path('hub/correos/', gmail.index, name='gmail_index'),
     path('hub/correos/conectar/', gmail.start, name='gmail_start'),

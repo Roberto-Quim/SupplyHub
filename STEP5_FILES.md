@@ -1,3 +1,5 @@
+> Documento histórico de esta entrega. Estado y plan vigentes: [docs/ESTADO.md](docs/ESTADO.md) y [docs/PLAN.md](docs/PLAN.md).
+
 # STEP 5: Módulo de Seguimiento de Órdenes de Compra (OC) & Control CAPEX
 
 ## Resumen del Paso

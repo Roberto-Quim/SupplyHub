@@ -1,3 +1,5 @@
+> Documento histórico de esta entrega. Estado y plan vigentes: [docs/ESTADO.md](docs/ESTADO.md) y [docs/PLAN.md](docs/PLAN.md).
+
 # STEP 6: Consolidación de Requerimientos de Negocio (Edith & Jacqueline)
 
 ## Resumen del Paso

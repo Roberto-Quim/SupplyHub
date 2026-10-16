@@ -21,6 +21,7 @@ from supplyhub.services.dataanalytics_access_service import (
     authorize_and_log,
     clear_session_identity,
     normalize_payroll,
+    resolve_assignment_payroll,
     store_session_identity,
 )
 
@@ -109,6 +110,12 @@ def active_directory_login_view(request: HttpRequest) -> HttpResponse:
         if not allowed:
             messages.error(request, DENIED_MESSAGE)
             return redirect("login")
+
+        if settings.DATAANALYTICS_ENABLED:
+            employee_number = resolve_assignment_payroll(id_usuario, id_perfil, correo=correo, no_nomina=employee_number)
+            if not employee_number:
+                messages.error(request, DENIED_MESSAGE)
+                return redirect('login')
 
         # Si AD obtuvo nómina, también se usa como username corporativo.
         if employee_number and user.username != employee_number:

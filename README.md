@@ -1,56 +1,42 @@
 # SupplyHub
 
-SupplyHub es la plataforma interna de gestión y control para unificar dos dominios operativos de Compras:
+Plataforma interna de Compras: RFQ/CAPEX (Edith), seguimiento de OC (Jacqueline) y Administración.
 
-- **RFQ / CAPEX (Flujo Edith)**: Recepción, revisión, decisión de seguimiento, estados (solicitada, en cotización, concluida, cancelada), autocompletado inteligente desde correos de *Form Approvals* (Regex) e importación de solicitudes.
-- **Seguimiento de Órdenes de Compra (Flujo Jacqueline)**: Control de compras QES Oracle, proveedores, supplier sites, partidas, columna de Release ($R$), bitácora interactiva de respuestas predeterminadas por fecha y semaforización de vencimientos (excluyendo Macimex Tenango).
+- **Usuarios:** asignaciones independientes de persona, método de ingreso y perfil; altas, edición, activación e inactivación.
+- **Perfiles:** nombre, estado y selección de submódulos; jerarquía TI/Administrador de DataAnalytics.
+- **Módulos:** padres, submódulos, rutas y orden; el menú lee el catálogo central y los permisos reales.
+- **Supplier Sites:** catálogo de proveedor/sitio/planta, contacto y correo, asociado a OC.
+- **ErrorLog:** consulta por fechas y búsqueda, exclusivamente TI; sin edición ni borrado.
 
-La base arquitectónica replica el patrón validado de Sistema Data Analytics:
+Los tres catálogos de identidad/permisos usan DataAnalytics. Los datos operativos, Supplier Sites y errores de SupplyHub se guardan en su propia base. La demostración local es independiente y no crea permisos corporativos.
 
-`URL -> función pública Django -> Controlador -> Servicio -> datos -> Template`
+## Arranque
 
-La autenticación corporativa (Active Directory / Nómina) y la autorización por perfiles/módulos se integran con DataAnalytics. Los datos de negocio de SupplyHub permanecen separados de las tablas administrativas.
+Python 3.14; ejecutar desde la raíz del repositorio:
 
----
-
-## Estructura del Proyecto
-
-```text
-SupplyHub/
-├── Controladores/           # Controladores HTTP y orquestación de vistas
-├── Modelos/                 # Aplicación Django principal (models, services, forms)
-│   └── supplyhub/
-│       ├── domain/          # Modelos de dominio ORM (OrdenCompra, LineaOC, RFQCapex, etc.)
-│       ├── services/        # Servicios de negocio, importación Excel y parsers
-│       └── forms/           # Formularios Django
-├── Vistas/                  # Plantillas HTML y componentes UI (templates)
-├── tests/                   # Suite automatizada de pruebas unitarias e integración
-└── Otros/                   # Archivos de configuración (manage.py, settings, urls, static)
-
-##Arranque Local de la Fundación
-##Bash
-# 1. Crear y activar entorno virtual
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
-
-# 2. Instalar dependencias
-pip install -r requirements.txt
-
-# 3. Configurar variables de entorno
-copy .env.example .env
-
-# 4. Verificar integridad y migraciones
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 python Otros/manage.py check
 python Otros/manage.py migrate
+python Otros/manage.py test tests --noinput
+python Otros/manage.py createsuperuser
+python Otros/manage.py seed_supplyhub_administration --demo --username TU_USUARIO_LOCAL
+python Otros/manage.py seed_supplyhub_demo --username TU_USUARIO_LOCAL
+python Otros/manage.py runserver 127.0.0.1:8000
+```
 
-# 5. Ejecutar la suite de pruebas
-python Otros/manage.py test tests
+En desarrollo, solo un superusuario local puede administrar. Las cuentas locales ordinarias conservan los flujos de Compras. No se crean contraseñas ni cuentas mediante las siembras.
 
-# 6. Levantar servidor de desarrollo
-python Otros/manage.py runserver
+## Documentación vigente
 
-## Gmail y pruebas de operación
-- [Step 7: conexión Gmail y revisión de respuestas](STEP7_FILES.md)
-- [Step 8: panel de operación, reintentos y demostración local](STEP8_FILES.md)
+- [Plan original y correspondencia de entregas](docs/PLAN.md)
+- [Estado, pruebas y límites](docs/ESTADO.md)
+- [Arquitectura y referencia DataAnalytics](docs/ARQUITECTURA.md)
+- [Despliegue y operación programada](docs/DESPLIEGUE.md)
+- [Ramas y commits revisados](docs/RAMAS_REVISADAS.md)
+- [Flujo de Compras Indirectas](Compras%20Indirectas/PLAN.md)
 
-Las conexiones reales requieren configurar OAuth de Google y autorización individual. La demostración de Step 8 permite probar la revisión sin Gmail.
+Los STEP*_FILES.md describen entregas históricas. Sus números no sustituyen el plan original. Las conexiones corporativas y envíos están apagados por defecto; consultar DESPLIEGUE antes de activarlos.

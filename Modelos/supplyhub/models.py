@@ -6,14 +6,9 @@ __all__ = ["RFQCapex", "HistorialEstadoRFQ", "HistorialDecisionRFQ"]
 
 from django.db import models
 from django.utils import timezone
+from .domain.administracion import DevPerfil, DevModulo, DevAsignacion, SupplierSite, ErrorLog, AuditoriaAdministracion
 from .domain.rfq_capex import RFQCapex
 
-# --- MODELOS EXISTENTES DE FEAT 4 ---
-# (Asegúrate de tener aquí tu clase RFQCapex original y sus historiales)
-# class RFQCapex(models.Model):
-#     ...
-
-# --- NUEVOS MODELOS DE FEAT 5 ---
 class OrdenCompra(models.Model):
     class EstadoOC(models.TextChoices):
         ABIERTA = "ABIERTA", "Abierta"
@@ -120,9 +115,14 @@ class HistorialSeguimiento(models.Model):
     fuente = models.CharField(max_length=20, choices=Fuente.choices, default=Fuente.MANUAL)
     
     fecha_revisada_propuesta = models.DateField(null=True, blank=True)
+    fecha_revisada_anterior = models.DateField(null=True, blank=True)
     estado_validacion = models.BooleanField(default=True)
     
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    activo = models.BooleanField(default=True)
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por = models.CharField(max_length=100, blank=True)
+    motivo_anulacion = models.CharField(max_length=500, blank=True)
 
     class Meta:
         ordering = ['-fecha_registro']
@@ -134,6 +134,8 @@ class RecordatorioOC(models.Model):
         GENERADO = "GENERADO", "Generado"
         ENVIADO = "ENVIADO", "Enviado"
         OMITIDO = "OMITIDO", "Omitido/Cancelado"
+        EN_PROCESO = "EN_PROCESO", "En proceso de envío"
+        FALLIDO = "FALLIDO", "Fallido; requiere revisión"
 
     linea = models.ForeignKey(LineaOC, on_delete=models.CASCADE, related_name="recordatorios")
     fecha_programada = models.DateTimeField()
@@ -144,6 +146,12 @@ class RecordatorioOC(models.Model):
         default=EstadoRecordatorio.PROGRAMADO
     )
     intentos = models.IntegerField(default=0)
+    aprobado_por = models.CharField(max_length=100, blank=True)
+    aprobado_en = models.DateTimeField(null=True, blank=True)
+    destinatario_aprobado = models.EmailField(blank=True)
+    ultimo_error = models.CharField(max_length=200, blank=True)
+
+    clave_idempotencia = models.CharField(max_length=100, unique=True, null=True, blank=True)
 
 class GmailMailbox(models.Model):
     owner = models.ForeignKey('auth.User', on_delete=models.CASCADE)

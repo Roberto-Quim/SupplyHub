@@ -50,7 +50,7 @@
         </button>
         <div class="q-menu-panel" data-q-menu-panel hidden>
             {% for item in parent.children %}
-            <a href="{% url item.url_name %}">
+            <a href="{{ item.route }}">
                 <span class="q-menu-icon">›</span>
                 <span>{{ item.label }}</span>
             </a>

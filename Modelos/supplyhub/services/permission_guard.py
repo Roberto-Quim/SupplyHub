@@ -12,7 +12,10 @@ def supplyhub_route_required(route: str):
         @login_required
         @wraps(view_func)
         def wrapped(request, *args, **kwargs):
-            id_perfil = int(request.session.get("sh_id_perfil", 0) or 0)
+            try:
+                id_perfil = int(request.session.get("sh_id_perfil", 0) or 0)
+            except (ValueError, TypeError):
+                raise PermissionDenied("Sesión de autorización inválida.")
             if not can_access_route(id_perfil, route):
                 raise PermissionDenied("No tienes permiso para este módulo de SupplyHub.")
             return view_func(request, *args, **kwargs)

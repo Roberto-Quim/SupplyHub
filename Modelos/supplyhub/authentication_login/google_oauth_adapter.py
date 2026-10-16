@@ -1,8 +1,7 @@
 """Adaptador Google OAuth corporativo para SupplyHub.
 
 Google prueba la identidad por correo. DataAnalytics resuelve ese correo hacia
-IdUsuario/IdPerfil; en SupplyHub, IdUsuario se usa como nómina/username
-corporativo cuando la integración está activa.
+IdUsuario/IdPerfil. La nómina se obtiene del campo NoNomina de esa asignación.
 """
 from __future__ import annotations
 
@@ -17,6 +16,7 @@ from supplyhub.services.dataanalytics_access_service import (
     TIPO_CORREO,
     authorize_and_log,
     normalize_payroll,
+    resolve_assignment_payroll,
     store_session_identity,
 )
 
@@ -76,6 +76,15 @@ class CorporateGoogleSocialAccountAdapter(_AdapterBase):
         payroll_user = User.objects.filter(username=payroll).first()
         email_user = User.objects.filter(email__iexact=email).first() if email else None
 
+        if sociallogin.is_existing:
+            bound = sociallogin.account.user
+            if payroll_user is not None and bound.pk != payroll_user.pk:
+                raise self._immediate_redirect()(redirect(settings.LOGIN_URL))
+            if bound.username != payroll:
+                bound.username = payroll
+                bound.save(update_fields=['username'])
+            return bound
+
         if payroll_user is not None:
             if not sociallogin.is_existing:
                 sociallogin.connect(request, payroll_user)
@@ -98,7 +107,7 @@ class CorporateGoogleSocialAccountAdapter(_AdapterBase):
 
         extra = sociallogin.account.extra_data or {}
         email = (extra.get("email") or "").strip().lower()
-        verified = extra.get("verified_email", True)
+        verified = extra.get("email_verified", extra.get("verified_email", False)) is True
         if not verified:
             logger.warning("Google OAuth rechazado: correo no verificado.")
             raise ImmediateHttpResponse(redirect(settings.LOGIN_URL))
@@ -117,8 +126,10 @@ class CorporateGoogleSocialAccountAdapter(_AdapterBase):
             logger.warning("Google OAuth autenticó identidad pero DataAnalytics negó acceso.")
             raise ImmediateHttpResponse(redirect(settings.LOGIN_URL))
 
-        # Regla corporativa: DataAnalytics.IdUsuario corresponde a la nómina.
-        payroll = normalize_payroll(id_usuario) if settings.DATAANALYTICS_ENABLED else ""
+        payroll = resolve_assignment_payroll(id_usuario, id_perfil, correo=email) if settings.DATAANALYTICS_ENABLED else ""
+        if settings.DATAANALYTICS_ENABLED and not payroll:
+            logger.warning('Google OAuth rechazado: la asignación no tiene una nómina corporativa válida.')
+            raise ImmediateHttpResponse(redirect(settings.LOGIN_URL))
         user = self._bind_to_payroll_user(request, sociallogin, payroll, email)
 
         # Sin DataAnalytics (solo pruebas OAuth locales), evita duplicar por correo.

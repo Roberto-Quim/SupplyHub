@@ -59,7 +59,7 @@ class Step3MenuTests(TestCase):
             {"username": "devuser", "password": "StrongPass123!"},
         )
         self.assertEqual(self.client.get(reverse("supplyhub:rfq_capex")).status_code, 200)
-        self.assertEqual(self.client.get(reverse("supplyhub:admin_usuarios")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("supplyhub:admin_usuarios")).status_code, 403)
 
     def test_login_muestra_metodos_corporativos(self):
         response = self.client.get(reverse("login"))

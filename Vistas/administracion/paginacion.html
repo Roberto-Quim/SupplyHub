@@ -1,0 +1,5 @@
+<nav class="admin-pagination" aria-label="Páginas">
+<span>{{ records.paginator.count }} registros · Página {{ records.number }} de {{ records.paginator.num_pages }}</span>
+{% if records.has_previous %}<a href="?q={{ q|urlencode }}&estado={{ estado|urlencode }}&fecha_inicio={{ form.fecha_inicio.value|default:'' }}&fecha_fin={{ form.fecha_fin.value|default:'' }}&page={{ records.previous_page_number }}">Anterior</a>{% endif %}
+{% if records.has_next %}<a href="?q={{ q|urlencode }}&estado={{ estado|urlencode }}&fecha_inicio={{ form.fecha_inicio.value|default:'' }}&fecha_fin={{ form.fecha_fin.value|default:'' }}&page={{ records.next_page_number }}">Siguiente</a>{% endif %}
+</nav>

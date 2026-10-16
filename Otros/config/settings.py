@@ -91,6 +91,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "supplyhub.services.error_middleware.ErrorLoggingMiddleware",
+    "supplyhub.services.session_middleware.CorporateSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -250,3 +252,18 @@ GMAIL_ENABLED = get_env_bool('GMAIL_ENABLED', 'False')
 GMAIL_CLIENT_ID = get_env_value('GMAIL_CLIENT_ID', '')
 GMAIL_CLIENT_SECRET = get_env_value('GMAIL_CLIENT_SECRET', '', strip=False)
 GMAIL_REDIRECT_URI = get_env_value('GMAIL_REDIRECT_URI', 'http://127.0.0.1:8000/hub/correos/callback/')
+
+# Trabajos opt-in. Ninguna ejecución web instala una tarea ni envía recordatorios.
+GMAIL_BACKGROUND_SYNC_ENABLED = get_env_bool('GMAIL_BACKGROUND_SYNC_ENABLED', 'False')
+GMAIL_SYNC_INTERVAL_MINUTES = max(1, get_env_int('GMAIL_SYNC_INTERVAL_MINUTES', 15))
+REMINDERS_SEND_ENABLED = get_env_bool('REMINDERS_SEND_ENABLED', 'False')
+EMAIL_BACKEND = get_env_value('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = get_env_value('EMAIL_HOST', '')
+EMAIL_PORT = get_env_int('EMAIL_PORT', 587)
+EMAIL_USE_TLS = get_env_bool('EMAIL_USE_TLS', 'True')
+EMAIL_HOST_USER = get_env_value('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = get_env_value('EMAIL_HOST_PASSWORD', '', strip=False)
+EMAIL_TIMEOUT = 30
+DEFAULT_FROM_EMAIL = get_env_value('DEFAULT_FROM_EMAIL', '')
+
+SUPPLYHUB_REVALIDATE_SESSION = True

@@ -2,6 +2,7 @@
 
 from Controladores.administracion_controller import (
     catalogos_index,
+    error_logs_index,
     modulos_index,
     perfiles_index,
     supplier_sites_index,
@@ -42,4 +43,5 @@ __all__ = [
     "modulos_index",
     "supplier_sites_index",
     "catalogos_index",
+    "error_logs_index",
 ]

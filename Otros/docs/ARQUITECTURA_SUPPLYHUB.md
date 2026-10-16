@@ -1,3 +1,5 @@
+> Arquitectura fundacional. Consultar [arquitectura vigente](../../docs/ARQUITECTURA.md) y [plan vigente](../../docs/PLAN.md).
+
 # Arquitectura SupplyHub — Fundación
 
 ## Objetivo

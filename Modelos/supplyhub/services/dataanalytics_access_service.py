@@ -44,9 +44,8 @@ def corporate_username(*, id_usuario=0, no_nomina: str = "") -> str:
     payroll = normalize_payroll(no_nomina)
     if payroll:
         return payroll
-    if getattr(settings, "CORPORATE_USERNAME_IS_PAYROLL", True):
-        return normalize_payroll(id_usuario)
-    return normalize_payroll(id_usuario)
+    # IdUsuario identifica la asignación de acceso, no el número de nómina.
+    return ""
 
 
 def _fetch_row(cursor):
@@ -199,3 +198,17 @@ def clear_session_identity(session) -> None:
     for key in SESSION_KEYS:
         session.pop(key, None)
     session.pop("payroll_worker", None)
+
+
+def resolve_assignment_payroll(id_usuario, id_perfil, *, correo='', no_nomina=''):
+    """Resuelve la nómina real sin interpretar el ID de la asignación como identidad."""
+    from .da_admin.dataanalytics_user_admin_service import get_user_by_id
+    assignment = get_user_by_id(id_usuario)
+    if not assignment or not assignment['activo'] or assignment['id_perfil'] != id_perfil:
+        return ''
+    if correo and assignment['correo'].strip().casefold() != correo.strip().casefold():
+        return ''
+    payroll = normalize_payroll(assignment['no_nomina'])
+    if no_nomina and payroll != normalize_payroll(no_nomina):
+        return ''
+    return payroll

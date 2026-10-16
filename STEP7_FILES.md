@@ -1,3 +1,5 @@
+> Documento histórico de esta entrega. Estado y plan vigentes: [docs/ESTADO.md](docs/ESTADO.md) y [docs/PLAN.md](docs/PLAN.md).
+
 # STEP 7 — Gmail y revisión de respuestas de proveedores
 
 Implementación sobre `fix/step5-step6-integration`. Incluye correcciones de Step 5/6, aún independientes de main.
