@@ -74,6 +74,8 @@ def seguimiento_oc_index(request):
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
 def seguimiento_oc_detalle(request, pk: int):
     """Detalle de OC con registro de seguimiento por línea e historial de Jacqui"""
+    if request.method not in ['GET', 'POST', 'HEAD']:
+        return HttpResponseNotAllowed(['GET', 'POST', 'HEAD'])
     orden = get_object_or_404(
         OrdenCompra.objects.exclude(
             planta_normalizada=OrdenCompra.PlantaNormalizada.MACIMEX_TENANGO

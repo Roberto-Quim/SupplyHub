@@ -41,7 +41,8 @@ def start(request):
 @supplyhub_route_required(ROUTE)
 def callback(request):
     pending=request.session.pop('gmail_oauth',{})
-    valid=(pending.get('user')==request.user.pk and 0 <= time.time()-pending.get('at',0) <= 600 and secrets.compare_digest(pending.get('state',''),request.GET.get('state','')))
+    state = request.GET.get('state', '')
+    valid=(pending.get('user')==request.user.pk and 0 <= time.time()-pending.get('at',0) <= 600 and state.isascii() and secrets.compare_digest(pending.get('state',''),state))
     if not valid or not request.GET.get('code') or request.GET.get('error'):
         messages.error(request,'AutorizaciÃ³n cancelada o vencida. Conecta el buzÃ³n otra vez.')
         return redirect('supplyhub:gmail_index')
