@@ -29,12 +29,36 @@ def require_config():
 
 def http(method, url, **kwargs):
     try:
-        response = requests.request(method, url, timeout=30, **kwargs)
+        response = requests.request(
+            method,
+            url,
+            timeout=30,
+            **kwargs
+        )
         response.raise_for_status()
         return response.json()
-    except (requests.RequestException, ValueError) as exc:
-        raise GmailError('Google no pudo completar la solicitud. Revisa la conexión o vuelve a autorizar el buzón.') from exc
 
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else "desconocido"
+        error_code = "desconocido"
+
+        if exc.response is not None:
+            try:
+                payload = exc.response.json()
+                error_code = str(payload.get("error", "desconocido"))
+                if isinstance(payload.get("error"), dict):
+                    error_code = str(payload["error"].get("status", "desconocido"))
+            except ValueError:
+                pass
+
+        raise GmailError(
+            f"Google rechazó la solicitud (HTTP {status}, error: {error_code})."
+        ) from exc
+
+    except (requests.RequestException, ValueError) as exc:
+        raise GmailError(
+            "No se pudo completar la comunicación con Google."
+        ) from exc
 
 def authorization_url(state):
     require_config()
