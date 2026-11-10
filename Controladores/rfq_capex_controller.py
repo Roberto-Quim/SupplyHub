@@ -1,10 +1,12 @@
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponseNotAllowed
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from supplyhub.services.importacion_rfq_service import importar_rfq_capex_excel
+from supplyhub.services.prevision_rfq_service import previsualizar_rfq_excel
 
 from supplyhub.forms import RFQCapexForm, RFQDecisionForm, RFQEstadoForm
 from supplyhub.models import RFQCapex
@@ -19,18 +21,49 @@ from supplyhub.services.rfq_capex_service import (
 
 RFQ_ROUTE = "/hub/rfq-capex/"
 
-# En Controladores/rfq_capex_controller.py
 
 @supplyhub_route_required(RFQ_ROUTE)
 def rfq_capex_import(request):
-    if request.method == "POST" and request.FILES.get("archivo"):
-        resumen = importar_rfq_capex_excel(
-            request.FILES["archivo"],
-            actor_from_request(request)
-        )
-        messages.success(request, f"Importación completada: {resumen['insertados']} creados, {resumen['actualizados']} actualizados.")
-        return redirect("supplyhub:rfq_capex_index")
-    return render(request, "rfq_capex/importar.html")
+    """Vista principal de importación con dos pasos: previsualizar y confirmar."""
+    if request.method == "POST":
+        # Paso 1: Previsualización (retorna JSON para AJAX o renderiza template)
+        if request.FILES.get("archivo") and not request.POST.get("confirmar"):
+            archivo = request.FILES["archivo"]
+            prevision = previsualizar_rfq_excel(archivo)
+            
+            # Guardar archivo temporalmente en sesión (simulado, en producción usar cache o temp file)
+            # Por ahora, pedimos re-upload en confirmación
+            
+            return render(request, "rfq_capex/importar_previa.html", {
+                "page_title": "Vista Previa Importación RFQ/CAPEX",
+                "prevision": prevision,
+                "tiene_errores": prevision["resumen"]["errores"] > 0,
+            })
+        
+        # Paso 2: Confirmación (ejecuta importación real)
+        if request.FILES.get("archivo_confirmado") and request.POST.get("confirmar"):
+            archivo = request.FILES["archivo_confirmado"]
+            try:
+                resumen = importar_rfq_capex_excel(archivo, actor_from_request(request))
+                messages.success(
+                    request,
+                    f"Importación completada: {resumen['insertados']} RFQ creados, "
+                    f"{resumen['actualizados']} actualizados."
+                )
+                if resumen.get("errores"):
+                    messages.warning(
+                        request,
+                        f"{len(resumen['errores'])} filas con error. Revise los detalles."
+                    )
+            except Exception as e:
+                messages.error(request, f"Error en la importación: {str(e)}")
+            
+            return redirect("supplyhub:rfq_capex_index")
+    
+    # GET: Mostrar formulario de carga
+    return render(request, "rfq_capex/importar.html", {
+        "page_title": "Importar RFQ / CAPEX desde Excel"
+    })
 
 @supplyhub_route_required(RFQ_ROUTE)
 def rfq_capex_index(request):

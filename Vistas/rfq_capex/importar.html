@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Importar RFQ/CAPEX | SupplyHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">HUB · Compras Directas</p>
+        <h1>{{ page_title }}</h1>
+        <p class="muted">Cargue un archivo Excel con solicitudes de cotización (RFQ/CAPEX).</p>
+    </div>
+    <a href="{% url 'supplyhub:rfq_capex_index' %}" class="secondary-link">← Volver al listado</a>
+</div>
+
+<div class="q-card" style="max-width: 700px; margin: 0 auto;">
+    <h2 style="margin-top: 0;">📤 Cargar Archivo Excel</h2>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Archivo Excel (.xlsx o .xls)
+            </label>
+            <input 
+                type="file" 
+                name="archivo" 
+                accept=".xlsx,.xls" 
+                required 
+                style="display: block; width: 100%; padding: 0.5rem; border: 2px dashed #d1d5db; border-radius: 4px; background-color: #f9fafb;"
+            >
+            <p class="muted small" style="margin-top: 0.5rem;">
+                Formatos aceptados: Excel 2007+ (.xlsx) o Excel 97-2003 (.xls)
+            </p>
+        </div>
+        
+        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+            → Vista Previa de Importación
+        </button>
+    </form>
+</div>
+
+<div class="q-card" style="max-width: 700px; margin: 2rem auto 0; background-color: #f0f9ff; border-left: 4px solid #3b82f6;">
+    <h3 style="margin-top: 0; color: #1e40af;">ℹ️ Formato Esperado</h3>
+    <p style="color: #1e40af; margin-bottom: 0.5rem;">
+        El archivo Excel debe contener las siguientes columnas (no importa el orden):
+    </p>
+    <ul style="color: #1e40af; margin-top: 0.5rem;">
+        <li><strong>RFQ</strong> o <strong>PEDIDO</strong> o <strong>Request #</strong> — Número de solicitud (obligatorio)</li>
+        <li><strong>DESCRIPCION</strong> — Descripción de la solicitud</li>
+        <li><strong>SOLICITANTE</strong> — Nombre del solicitante</li>
+        <li><strong>PLANTA</strong> — Planta de destino (Tenango o MAQ RA)</li>
+        <li><strong>PROYECTO</strong> o <strong>Clave del proyecto o Numero de CapEx</strong> — Clave CAPEX</li>
+    </ul>
+    <p style="color: #1e40af; margin-top: 1rem; margin-bottom: 0;">
+        <strong>Nota:</strong> Las columnas adicionales (COMPARATIVA, PROVEEDOR SELECCIONADO, #OC, fechas, etc.) son opcionales y se importarán si están disponibles.
+    </p>
+</div>
+
+<div class="q-card" style="max-width: 700px; margin: 1.5rem auto 0; background-color: #fffbeb; border-left: 4px solid #f59e0b;">
+    <h3 style="margin-top: 0; color: #92400e;">🔍 Proceso de Importación</h3>
+    <ol style="color: #92400e; padding-left: 1.25rem;">
+        <li><strong>Vista Previa:</strong> Primero verá un resumen de los datos detectados.</li>
+        <li><strong>Validación:</strong> El sistema identificará RFQ nuevos, actualizaciones y duplicados.</li>
+        <li><strong>Confirmación:</strong> Deberá confirmar antes de que se guarden los cambios en la base de datos.</li>
+    </ol>
+    <p style="color: #92400e; margin-bottom: 0;">
+        <strong>Importante:</strong> Los RFQ existentes con el mismo número se actualizarán con la nueva información. No se crearán duplicados.
+    </p>
+</div>
+
+<style>
+.secondary-link {
+    padding: 0.5rem 1rem;
+    background-color: #f3f4f6;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    display: inline-block;
+}
+.secondary-link:hover {
+    background-color: #e5e7eb;
+}
+</style>
+{% endblock %}

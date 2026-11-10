@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Vista Previa Importación RFQ/CAPEX | SupplyHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">HUB · Compras Directas</p>
+        <h1>{{ page_title }}</h1>
+        <p class="muted">Revise los datos antes de confirmar la importación.</p>
+    </div>
+    <a href="{% url 'supplyhub:rfq_capex_index' %}" class="secondary-link">← Cancelar</a>
+</div>
+
+<!-- Resumen de Vista Previa -->
+<div class="kpi-grid">
+    <div class="q-card kpi">
+        <span class="muted">Registros totales</span>
+        <strong>{{ prevision.resumen.total }}</strong>
+    </div>
+    <div class="q-card kpi" style="border-left: 3px solid #10b981;">
+        <span class="muted">Nuevos RFQ</span>
+        <strong style="color: #10b981;">{{ prevision.resumen.nuevos }}</strong>
+    </div>
+    <div class="q-card kpi" style="border-left: 3px solid #f59e0b;">
+        <span class="muted">Actualizar existentes</span>
+        <strong style="color: #f59e0b;">{{ prevision.resumen.actualizar }}</strong>
+    </div>
+    <div class="q-card kpi" style="border-left: 3px solid #6b7280;">
+        <span class="muted">Sin cambios (duplicados)</span>
+        <strong style="color: #6b7280;">{{ prevision.resumen.duplicados }}</strong>
+    </div>
+    {% if prevision.resumen.errores > 0 %}
+    <div class="q-card kpi" style="border-left: 3px solid #ef4444;">
+        <span class="muted">Errores detectados</span>
+        <strong style="color: #ef4444;">{{ prevision.resumen.errores }}</strong>
+    </div>
+    {% endif %}
+</div>
+
+{% if prevision.errores %}
+<div class="q-card" style="background-color: #fef2f2; border-left: 4px solid #ef4444; margin-bottom: 1.5rem;">
+    <h3 style="color: #991b1b; margin-top: 0;">⚠️ Errores Detectados</h3>
+    <ul style="color: #991b1b; margin: 0;">
+        {% for error in prevision.errores %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Tabla de Vista Previa -->
+<div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
+<table>
+    <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+        <tr>
+            <th>Fila</th>
+            <th>Estado</th>
+            <th>RFQ</th>
+            <th>Descripción</th>
+            <th>Solicitante</th>
+            <th>Planta</th>
+            <th>CAPEX / Proyecto</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for reg in prevision.registros %}
+        <tr {% if reg.estado == "error" %}style="background-color: #fef2f2;"{% elif reg.estado == "nuevo" %}style="background-color: #f0fdf4;"{% elif reg.estado == "actualizar" %}style="background-color: #fef3c7;"{% elif reg.estado == "duplicado" %}style="background-color: #f3f4f6;"{% endif %}>
+            <td>{{ reg.fila }}</td>
+            <td>
+                {% if reg.estado == "nuevo" %}
+                    <span class="pill pill-success">Nuevo</span>
+                {% elif reg.estado == "actualizar" %}
+                    <span class="pill pill-warning">Actualizar</span>
+                {% elif reg.estado == "duplicado" %}
+                    <span class="pill">Sin cambios</span>
+                {% elif reg.estado == "error" %}
+                    <span class="pill pill-danger">Error</span>
+                {% endif %}
+            </td>
+            <td><strong>#{{ reg.rfq }}</strong></td>
+            <td title="{{ reg.descripcion_completa|default:reg.descripcion }}">{{ reg.descripcion }}</td>
+            <td>{{ reg.solicitante|default:"—" }}</td>
+            <td>{{ reg.planta|default:"—" }}</td>
+            <td>{{ reg.clave_capex|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No se detectaron registros válidos en el archivo.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- Formulario de Confirmación -->
+{% if prevision.resumen.total > 0 %}
+<form method="post" enctype="multipart/form-data" style="margin-top: 2rem;">
+    {% csrf_token %}
+    <input type="hidden" name="confirmar" value="1">
+    
+    <div class="q-card" style="background-color: #fffbeb; border-left: 4px solid #f59e0b;">
+        <h3 style="margin-top: 0; color: #92400e;">📋 Confirmar Importación</h3>
+        <p style="color: #92400e; margin-bottom: 1rem;">
+            {% if prevision.resumen.nuevos > 0 %}
+                Se crearán <strong>{{ prevision.resumen.nuevos }} nuevos RFQ</strong>.
+            {% endif %}
+            {% if prevision.resumen.actualizar > 0 %}
+                Se actualizarán <strong>{{ prevision.resumen.actualizar }} RFQ existentes</strong>.
+            {% endif %}
+            {% if prevision.resumen.duplicados > 0 %}
+                <strong>{{ prevision.resumen.duplicados }} registros</strong> no tienen cambios y serán omitidos.
+            {% endif %}
+        </p>
+        
+        {% if tiene_errores %}
+        <p style="color: #991b1b; font-weight: bold;">
+            ⚠️ Hay errores en algunos registros. Los registros válidos se importarán, pero revise los errores arriba.
+        </p>
+        {% endif %}
+        
+        <p style="color: #92400e; margin-bottom: 1rem;">
+            <strong>Importante:</strong> Debe volver a cargar el archivo Excel para confirmar la importación por seguridad.
+        </p>
+        
+        <label style="display: block; margin-bottom: 1rem;">
+            <span style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #92400e;">
+                Cargar archivo nuevamente para confirmar:
+            </span>
+            <input type="file" name="archivo_confirmado" accept=".xlsx,.xls" required style="display: block;">
+        </label>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="primary-button" {% if prevision.resumen.total == prevision.resumen.errores %}disabled{% endif %}>
+                ✓ Confirmar Importación
+            </button>
+            <a href="{% url 'supplyhub:importar_rfq_capex' %}" class="secondary-button">
+                ← Cargar Otro Archivo
+            </a>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="q-card" style="text-align: center; padding: 2rem;">
+    <p style="color: #6b7280; margin-bottom: 1rem;">No se encontraron registros válidos para importar.</p>
+    <a href="{% url 'supplyhub:importar_rfq_capex' %}" class="secondary-button">
+        ← Intentar con Otro Archivo
+    </a>
+</div>
+{% endif %}
+
+<style>
+.pill-success { background-color: #d1fae5; color: #065f46; }
+.pill-warning { background-color: #fef3c7; color: #92400e; }
+.pill-danger { background-color: #fee2e2; color: #991b1b; }
+.primary-button {
+    padding: 0.75rem 1.5rem;
+    background-color: #e6007e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+}
+.primary-button:hover:not(:disabled) {
+    background-color: #c4006a;
+}
+.primary-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+.secondary-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1rem;
+}
+.secondary-button:hover {
+    background-color: #e5e7eb;
+}
+</style>
+{% endblock %}
