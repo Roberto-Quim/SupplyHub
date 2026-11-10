@@ -4,8 +4,105 @@ Analiza el archivo Excel antes de importar, clasificando registros como nuevos,
 actualizaciones o duplicados, y validando posibles errores.
 """
 import pandas as pd
+from datetime import date, timedelta
 from supplyhub.models import OrdenCompra, LineaOC
 from .seguimiento_oc_service import normalizar_planta
+
+
+def validar_linea_oc(datos: dict, linea_existente=None) -> list:
+    """
+    Valida una línea de OC según reglas de negocio.
+    
+    Retorna lista de advertencias/errores:
+    - Tipo 'error': Bloquea importación
+    - Tipo 'warning': Permite importación pero alerta
+    
+    Args:
+        datos: dict con datos parseados de la línea
+        linea_existente: instancia de LineaOC si existe, None si es nueva
+    
+    Returns:
+        Lista de dicts: [{"tipo": "error|warning", "mensaje": "..."}]
+    """
+    validaciones = []
+    
+    # V1: Validar proveedor no vacío
+    proveedor = datos.get('proveedor', '')
+    if not proveedor or proveedor.lower() == 'nan':
+        validaciones.append({"tipo": "error", "mensaje": "Falta nombre del proveedor"})
+    
+    # V2: Validar cantidades no negativas
+    cant_sol = datos.get('cant_sol', 0)
+    cant_due = datos.get('cant_due', 0)
+    cant_rec = datos.get('cant_rec', 0)
+    
+    if cant_sol < 0:
+        validaciones.append({"tipo": "error", "mensaje": f"Cantidad solicitada negativa: {cant_sol}"})
+    if cant_due < 0:
+        validaciones.append({"tipo": "error", "mensaje": f"Cantidad pendiente negativa: {cant_due}"})
+    if cant_rec < 0:
+        validaciones.append({"tipo": "error", "mensaje": f"Cantidad recibida negativa: {cant_rec}"})
+    
+    # V3: Cantidad pendiente no debe exceder cantidad solicitada
+    if cant_due > cant_sol:
+        validaciones.append({"tipo": "warning", "mensaje": f"Cantidad pendiente ({cant_due}) mayor que solicitada ({cant_sol})"})
+    
+    # V4: Cantidad recibida + pendiente debe ser ~igual a solicitada
+    suma_cant = cant_rec + cant_due
+    if abs(suma_cant - cant_sol) > 0.01:  # Tolerancia para decimales
+        validaciones.append({"tipo": "warning", "mensaje": f"Suma de recibida ({cant_rec}) + pendiente ({cant_due}) = {suma_cant} ≠ solicitada ({cant_sol})"})
+    
+    # V5: Validar precio unitario
+    precio = datos.get('precio', 0)
+    if precio < 0:
+        validaciones.append({"tipo": "error", "mensaje": f"Precio unitario negativo: {precio}"})
+    if precio == 0 and cant_sol > 0:
+        validaciones.append({"tipo": "warning", "mensaje": "Precio unitario en cero con cantidad solicitada"})
+    
+    # V6: Validar fecha Need By
+    fecha_original = datos.get('fecha_original')
+    if fecha_original:
+        hoy = date.today()
+        
+        # Fecha muy antigua (más de 2 años en el pasado)
+        if fecha_original < (hoy - timedelta(days=730)):
+            validaciones.append({"tipo": "warning", "mensaje": f"Fecha Need By muy antigua: {fecha_original}"})
+        
+        # Si hay cantidad pendiente y fecha ya pasó, alertar
+        if cant_due > 0 and fecha_original < hoy:
+            dias_retraso = (hoy - fecha_original).days
+            if dias_retraso > 7:
+                validaciones.append({"tipo": "warning", "mensaje": f"Línea vencida: {dias_retraso} días de retraso"})
+    
+    # V7: Validar descripción y código de artículo
+    descripcion = datos.get('descripcion', '')
+    codigo_articulo = datos.get('codigo_articulo', '')
+    
+    if not descripcion and not codigo_articulo:
+        validaciones.append({"tipo": "warning", "mensaje": "Falta descripción y código de artículo"})
+    
+    # V8: Alertas de cambios significativos (solo si es actualización)
+    if linea_existente:
+        # Cambio significativo en precio (>20%)
+        precio_actual = float(linea_existente.precio_unitario) if linea_existente.precio_unitario else 0.0
+        if precio_actual > 0 and precio > 0:
+            cambio_precio_pct = abs((precio - precio_actual) / precio_actual) * 100
+            if cambio_precio_pct > 20:
+                validaciones.append({"tipo": "warning", "mensaje": f"Cambio significativo en precio: {cambio_precio_pct:.1f}% ({precio_actual} → {precio})"})
+        
+        # Cambio de fecha que alarga entrega
+        if linea_existente.fecha_original and fecha_original:
+            dias_cambio = (fecha_original - linea_existente.fecha_original).days
+            if dias_cambio > 7:
+                validaciones.append({"tipo": "warning", "mensaje": f"Fecha de entrega pospuesta: +{dias_cambio} días"})
+        
+        # Reducción significativa de cantidad pendiente (posible surtido parcial)
+        cant_pendiente_actual = float(linea_existente.cantidad_pendiente) if linea_existente.cantidad_pendiente else 0.0
+        if cant_pendiente_actual > 0 and cant_due < cant_pendiente_actual:
+            reduccion = cant_pendiente_actual - cant_due
+            validaciones.append({"tipo": "warning", "mensaje": f"Reducción cantidad pendiente: {cant_pendiente_actual} → {cant_due} (-{reduccion})"})
+    
+    return validaciones
 
 
 def previsualizar_oracle_open_po(archivo_excel) -> dict:
@@ -118,6 +215,8 @@ def previsualizar_oracle_open_po(archivo_excel) -> dict:
             # === CLASIFICACIÓN: NUEVO, ACTUALIZAR o DUPLICADO ===
             estado = "nuevo"
             razon = ""
+            oc_existente = None
+            linea_existente = None
             
             try:
                 # Buscar OC existente
@@ -197,6 +296,31 @@ def previsualizar_oracle_open_po(archivo_excel) -> dict:
                 estado = "error"
                 razon = f"Error al verificar registro: {str(e)}"
             
+            # === VALIDACIONES DE NEGOCIO ===
+            datos_validacion = {
+                'proveedor': proveedor,
+                'cant_sol': float(cant_sol) if pd.notnull(cant_sol) else 0.0,
+                'cant_due': float(cant_due) if pd.notnull(cant_due) else 0.0,
+                'cant_rec': float(cant_rec) if pd.notnull(cant_rec) else 0.0,
+                'precio': float(unit_price) if pd.notnull(unit_price) else 0.0,
+                'fecha_original': fecha_original,
+                'descripcion': descripcion,
+                'codigo_articulo': codigo_articulo
+            }
+            
+            # Buscar línea existente si hay OC existente
+            linea_existente_validacion = None
+            if oc_existente and linea_existente:
+                linea_existente_validacion = linea_existente
+            
+            validaciones = validar_linea_oc(datos_validacion, linea_existente_validacion)
+            
+            # Si hay errores críticos, cambiar estado a "error"
+            tiene_errores = any(v["tipo"] == "error" for v in validaciones)
+            if tiene_errores and estado != "error":
+                estado = "error"
+                razon = "; ".join([v["mensaje"] for v in validaciones if v["tipo"] == "error"])
+            
             # Construir registro de previsualización
             registros.append({
                 "fila": fila_num,
@@ -207,7 +331,10 @@ def previsualizar_oracle_open_po(archivo_excel) -> dict:
                 "proveedor": proveedor[:40] + "..." if len(proveedor) > 40 else proveedor,
                 "planta": planta_orig[:30] + "..." if len(planta_orig) > 30 else planta_orig,
                 "estado": estado,
-                "razon": razon
+                "razon": razon,
+                "validaciones": validaciones,
+                "tiene_errores": tiene_errores,
+                "tiene_warnings": any(v["tipo"] == "warning" for v in validaciones)
             })
             
             # Actualizar contadores
