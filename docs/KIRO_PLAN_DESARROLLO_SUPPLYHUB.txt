@@ -1,0 +1,83 @@
+KIRO — PLAN INTEGRAL DE DESARROLLO DE SUPPLYHUB
+==============================================
+
+OBJETIVO
+Convertir SupplyHub en una aplicación Django funcional, mantenible y verificable para los procesos de Compras de Questum. Ya realizaste una auditoría y correcciones: no repitas trabajo concluido. Inspecciona el estado real del repositorio y programa lo que siga pendiente.
+
+1. RECONOCIMIENTO DEL PROYECTO
+- Comprueba rama, git status y commits recientes.
+- Lee README.md, STEP1_FILES.md a STEP6_FILES.md y docs/.
+- Inspecciona Modelos/, Controladores/, Vistas/, tests/ y Compras Indirectas/.
+- Contrasta documentación con código y pruebas; identifica pendientes reales.
+- No reconstruyas componentes funcionales ni inventes implementaciones.
+
+2. RFQ CAPEX — EDITH
+- Completa registro manual, extracción desde texto/correo, vista previa editable y validación humana.
+- Importa Excel con validación, detección de duplicados y trazabilidad.
+- Permite consulta, filtros, estados, comentarios y auditoría de cambios.
+- Normaliza plantas (Tenango y Maquinados Ramos) preservando valor original.
+- Conserva la interpretación configurable de PEDIDO # / Request # hasta validar identificadores reales.
+- Valida con Compras el catálogo oficial de estados y obligatoriedad de campos.
+
+3. SEGUIMIENTO DE ÓRDENES DE COMPRA — JACQUELINE
+- Examina primero los archivos reales de Oracle, Quest, Lista de Vencidos y seguimiento.
+- Implementa importación con vista previa, validación y resultados separados: nuevos, modificados, idénticos e inválidos.
+- Evita duplicados y conserva origen, archivo, fecha y datos originales.
+- Verifica clave única de OC/release/línea; no la supongas.
+- Completa modelos de OC, líneas, proveedor, supplier site, comprador, planta, cantidades, fechas y estados.
+- Completa vistas para pendientes, vencidos, filtros, detalle, historial, respuestas y entregas parciales/totales.
+- Asegura que el estado de una OC con varias líneas se calcule correctamente.
+
+4. RECORDATORIOS
+- Intervalo inicial configurable de 24 horas; pendiente de aprobación de Compras.
+- Genera recordatorios internos para pendientes; registra ejecución y próxima fecha.
+- Evita duplicados incluso con procesos concurrentes.
+- Detén recordatorios cuando corresponda por entrega/cierre.
+- Usa un proceso programado, no el inicio de sesión.
+- No envíes correos automáticamente.
+
+5. MÍNIMOS Y MÁXIMOS
+- Inspecciona archivos fuente y mapeos reales.
+- Implementa importación, validación, comparación entre versiones e historial.
+- Relaciona registros con OC solo cuando existan identificadores verificables.
+
+6. CORREO Y GOOGLE
+- Diseña integración desacoplada con Gmail API y OAuth 2.0 solo para cuentas autorizadas.
+- Identifica mensajes pertinentes, extrae campos, detecta faltantes y prepara borradores.
+- Exige revisión humana antes de guardar interpretaciones o enviar mensajes.
+- Si TI bloquea permisos, implementa un adaptador de prueba y documenta el bloqueo.
+- Nunca incrustes tokens, contraseñas ni credenciales.
+
+7. ARQUITECTURA, SEGURIDAD Y CALIDAD
+- Respeta la estructura existente Django: modelos, servicios, controladores y vistas.
+- Aplica validaciones del servidor, transacciones, permisos, CSRF, logs y auditoría.
+- Usa variables de entorno; no incluyas .env, bases locales ni datos empresariales sensibles en Git.
+- No inventes cifrado de Data Analytics: reutilízalo solo si inspeccionas su implementación autorizada.
+- Añade pruebas de importación idempotente, diferencias reales, errores, múltiples líneas, entregas, recordatorios y permisos.
+- Ejecuta pruebas después de cada fase y corrige fallos antes de declararla concluida.
+
+8. DOCUMENTACIÓN
+Actualiza README, arquitectura, MD050 Diseño Funcional, Memoria Técnica y Documento de Montaje según lo realmente implementado. Distingue requerimientos solicitados, propuestas, funciones probadas y pendientes de validación. No inventes aprobaciones.
+
+9. ORDEN DE EJECUCIÓN
+A. Estabilización pendiente.
+B. RFQ CAPEX.
+C. Seguimiento OC.
+D. Recordatorios.
+E. Mínimos y máximos.
+F. Integración de correo.
+G. Pruebas integrales, documentación y preparación para evaluación de despliegue.
+Reordena solo si existe una dependencia técnica justificada.
+
+10. GIT Y AUTONOMÍA
+- No programes directamente en main ni en docs/md050-diseno-funcional.
+- Crea una rama de trabajo desde una base actualizada y verificada, sin perder cambios locales.
+- Haz commits pequeños y descriptivos; no hagas merge, push o despliegue sin autorización.
+- Puedes inspeccionar, editar, refactorizar y ejecutar pruebas dentro de la rama de trabajo.
+- Detente si requieres permisos corporativos, secretos, decisiones de negocio o acciones destructivas.
+
+11. INFORME AL TERMINAR CADA FASE
+Indica: funcionalidades implementadas; archivos cambiados; pruebas ejecutadas y resultados; errores corregidos; pendientes; siguiente fase. No entregues solo un plan: ejecuta el código.
+
+INSTRUCCIÓN FINAL
+Empieza verificando el estado actual y continúa con la primera funcionalidad realmente pendiente. La meta es una solución completa y verificable para Edith y Jacqueline, sin comprometer datos corporativos ni afirmar que el prototipo está aprobado para producción.
