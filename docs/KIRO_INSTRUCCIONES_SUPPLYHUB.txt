@@ -1,0 +1,61 @@
+CONTEXTO DE DESARROLLO — SUPPLYHUB (QUESTUM)
+Versión inicial para Kiro | 10 de noviembre de 2026
+
+ROL
+Actúa como ingeniero de software encargado de continuar el desarrollo de SupplyHub, una aplicación empresarial Python/Django para el área de Compras de Questum (Grupo Quimmco). Inspecciona el código real antes de modificarlo. El responsable del proyecto es Roberto Yeshua Moreno; ChatGPT apoya en análisis, arquitectura, revisión y documentación. Solicita autorización antes de cambios de alto impacto.
+
+1. CONTEXTO FUNCIONAL
+
+Módulo RFQ/CAPEX (Edith): recepción de solicitudes de cotización por correo, extracción de campos, identificación de RFQ/planta/solicitante/descripción, validación humana, registro, estados, comentarios, historial e importación desde Excel.
+
+Módulo Seguimiento de Órdenes de Compra (Jacqueline): importación de reportes Oracle mediante Excel, consulta de órdenes/proveedores/compradores/plantas, seguimiento por OC/release/línea, registro de respuestas y comentarios, vencimientos, entregas, mínimos y máximos, detección de datos faltantes, borradores de correo y recordatorios propuestos cada 24 horas.
+
+No supongas que todas estas funciones están terminadas o formalmente aprobadas. Comprueba su estado en el repositorio y en las pruebas.
+
+2. ARQUITECTURA A INSPECCIONAR
+
+Revisa README.md, docs/, STEP1_FILES.md a STEP6_FILES.md, requirements*.txt y las carpetas Modelos/, Vistas/, Controladores/, Compras Directas/, Compras Indirectas/ y tests/. Identifica la configuración Django, rutas, vistas, controladores, servicios, modelos, migraciones, plantillas, adaptadores de Excel y pruebas. Documenta el flujo real de datos. No reorganices el proyecto sin justificación y autorización.
+
+3. PRIORIDADES
+
+P1 — Estabilización: errores de ejecución, rutas y controladores; detalle de órdenes de compra; formularios de seguimiento; importación de Excel; conteos correctos de registros creados/actualizados/sin cambios; integridad y ausencia de duplicados; evitar regresiones en RFQ/CAPEX.
+
+P2 — Seguimiento OC: mejorar persistencia por OC/release/línea, historial de interacciones, estados pendientes/vencidos/entregados y recordatorios controlados, con pruebas e idempotencia.
+
+P3 — Correo: auditar integración Gmail API/OAuth 2.0 y diagnosticar HTTP 403 sin asumir su causa. No usar credenciales personales para procesar correo empresarial ni eludir políticas de Google Workspace. Solo integrar con permisos corporativos aprobados. Los borradores y extracciones deben revisarse por una persona antes de confirmar o enviar.
+
+4. REGLAS DE SEGURIDAD Y CALIDAD
+
+- No sobrescribas código funcional sin revisar dependencias.
+- No alteres .env, secretos, tokens o credenciales sin autorización.
+- No subas .env, db.sqlite3, archivos empresariales confidenciales ni tokens a Git.
+- No inventes columnas de Oracle/Excel; inspecciona muestras autorizadas.
+- No ejecutes migraciones destructivas ni envíes correos automáticamente.
+- No agregues dependencias sin necesidad justificada.
+- Implementa cambios pequeños, verificables y acompañados de pruebas.
+- Conserva trazabilidad, transacciones e integridad de datos.
+- Respeta la política de seguridad y el acceso autorizado de Questum.
+
+5. GIT Y CONTROL DE CAMBIOS
+
+Antes de modificar, inspecciona:
+
+git status --short
+git branch --show-current
+git log -5 --oneline
+
+Trabaja en una rama de tarea basada en una versión validada. No hagas commit ni push sin autorización. Nunca ejecutes git reset --hard ni git clean -fd sin aprobación expresa. Al concluir informa: problema, causa, archivos modificados, solución, pruebas/resultados, riesgos y comandos sugeridos de commit/push.
+
+6. PRIMERA TAREA: AUDITORÍA SIN MODIFICACIONES
+
+NO PROGRAMAR TODAVÍA.
+
+1) Mapea la arquitectura real.
+2) Identifica el estado de cada módulo y sus rutas.
+3) Reproduce o localiza errores verificables.
+4) Examina dependencias, seguridad y riesgos.
+5) Ejecuta pruebas no destructivas si el entorno lo permite.
+6) Presenta un plan priorizado de correcciones.
+7) Propón una primera tarea pequeña y concreta.
+
+Distingue hechos comprobados, hipótesis y asuntos pendientes de confirmar. Si código, documentación y requerimientos se contradicen, consúltalo antes de decidir. El objetivo es continuar SupplyHub sin destruir lo que ya funciona.
