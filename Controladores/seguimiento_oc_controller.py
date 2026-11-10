@@ -112,15 +112,44 @@ def seguimiento_oc_detalle(request, pk: int):
 
 @supplyhub_route_required(SEGUIMIENTO_ROUTE)
 def importar_oc_view(request):
-    """Vista para importar reporte Excel QES Open PO"""
+    """Vista para importar reporte Excel QES Open PO - Paso 1: Subir archivo"""
     if request.method == "POST" and request.FILES.get("archivo"):
-        # Importación dinámica para resolver el nombre exacto de la función
+        from supplyhub.services.prevision_oc_service import previsualizar_oracle_open_po
+        
+        # Previsualizar importación
+        archivo = request.FILES["archivo"]
+        resultado = previsualizar_oracle_open_po(archivo)
+        
+        # Guardar nombre del archivo para mostrarlo en la previa
+        request.session["archivo_oc_nombre"] = archivo.name
+        
+        return render(request, "seguimiento_oc/importar_previa.html", {
+            "page_title": "Vista Previa - Importación OC",
+            "registros": resultado["registros"],
+            "resumen": resultado["resumen"],
+            "errores": resultado["errores"],
+        })
+    
+    return render(request, "seguimiento_oc/importar.html", {
+        "page_title": "Importar QES Open PO"
+    })
+
+
+@supplyhub_route_required(SEGUIMIENTO_ROUTE)
+def importar_oc_confirmar(request):
+    """Vista para confirmar importación OC - Paso 2: Re-subir y confirmar"""
+    if request.method == "POST" and request.FILES.get("archivo_confirmacion"):
         import supplyhub.services.importacion_oc_service as imp_service
         
         resumen = imp_service.importar_oracle_open_po(
-            request.FILES["archivo"],
+            request.FILES["archivo_confirmacion"],
             actor_from_request(request)
         )
+        
+        # Limpiar sesión
+        if "archivo_oc_nombre" in request.session:
+            del request.session["archivo_oc_nombre"]
+        
         messages.success(
             request,
             f"Importación completada: {resumen.get('insertados_oc', 0)} OC creadas, "
@@ -129,9 +158,9 @@ def importar_oc_view(request):
         )
         if resumen.get('errores'):
             messages.warning(request, f"{len(resumen['errores'])} filas con error: {resumen['errores'][0]}")
-            
+        
         return redirect("supplyhub:seguimiento_oc")
-
-    return render(request, "seguimiento_oc/importar.html", {
-        "page_title": "Importar QES Open PO"
-    })
+    
+    # Si llegó aquí sin archivo, redirigir al inicio
+    messages.error(request, "Debe subir nuevamente el archivo para confirmar la importación.")
+    return redirect("supplyhub:importar_oc")

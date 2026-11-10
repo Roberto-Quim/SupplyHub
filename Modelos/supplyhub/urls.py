@@ -3,7 +3,8 @@ from . import views
 from Controladores.seguimiento_oc_controller import (
     seguimiento_oc_index,
     seguimiento_oc_detalle,
-    importar_oc_view
+    importar_oc_view,
+    importar_oc_confirmar
 )
 
 from Controladores.rfq_capex_controller import (
@@ -37,6 +38,7 @@ urlpatterns = [
     path("hub/seguimiento-oc/", seguimiento_oc_index, name="seguimiento_oc"),
     path("hub/seguimiento-oc/<int:pk>/", seguimiento_oc_detalle, name="seguimiento_oc_detalle"),
     path("hub/seguimiento-oc/importar/", importar_oc_view, name="importar_oc"),
+    path("hub/seguimiento-oc/importar/confirmar/", importar_oc_confirmar, name="importar_oc_confirmar"),
 
     # Rutas Administración
     path("administracion/usuarios/", views.usuarios_index, name="admin_usuarios"),

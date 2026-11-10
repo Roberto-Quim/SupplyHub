@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="q-card">
+    <div>
+        <h2>{{ page_title }}</h2>
+        <p class="muted">Revisa los datos antes de confirmar la importación de Órdenes de Compra Oracle.</p>
+    </div>
+
+    <!-- KPIs de resumen -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem;">
+        <div style="padding: 1.25rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 8px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ resumen.nuevos }}</div>
+            <div style="font-size: 0.875rem; opacity: 0.95;">Líneas Nuevas</div>
+        </div>
+        <div style="padding: 1.25rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 8px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ resumen.actualizar }}</div>
+            <div style="font-size: 0.875rem; opacity: 0.95;">Actualizaciones</div>
+        </div>
+        <div style="padding: 1.25rem; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); border-radius: 8px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ resumen.duplicados }}</div>
+            <div style="font-size: 0.875rem; opacity: 0.95;">Duplicados (sin cambios)</div>
+        </div>
+        <div style="padding: 1.25rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 8px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ resumen.errores }}</div>
+            <div style="font-size: 0.875rem; opacity: 0.95;">Errores de Validación</div>
+        </div>
+    </div>
+
+    <!-- Tabla de registros previsualizados -->
+    <div style="margin-top: 2.5rem; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <thead style="background-color: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+                <tr>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Fila</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">OC #</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Release</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Línea</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Descripción</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Proveedor</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Planta</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Estado</th>
+                    <th style="padding: 0.875rem; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Razón</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in registros %}
+                <tr style="border-bottom: 1px solid #f3f4f6; 
+                    {% if registro.estado == 'nuevo' %}background-color: #f0fdf4;{% endif %}
+                    {% if registro.estado == 'actualizar' %}background-color: #fffbeb;{% endif %}
+                    {% if registro.estado == 'duplicado' %}background-color: #f9fafb;{% endif %}
+                    {% if registro.estado == 'error' %}background-color: #fef2f2;{% endif %}">
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.875rem;">{{ registro.fila }}</td>
+                    <td style="padding: 0.75rem; color: #111827; font-weight: 500; font-size: 0.875rem;">{{ registro.numero_oc }}</td>
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.875rem;">{{ registro.release|default:"-" }}</td>
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.875rem;">{{ registro.numero_linea }}</td>
+                    <td style="padding: 0.75rem; color: #374151; font-size: 0.875rem;">{{ registro.descripcion }}</td>
+                    <td style="padding: 0.75rem; color: #374151; font-size: 0.875rem;">{{ registro.proveedor }}</td>
+                    <td style="padding: 0.75rem; color: #374151; font-size: 0.875rem;">{{ registro.planta }}</td>
+                    <td style="padding: 0.75rem; font-size: 0.8125rem; font-weight: 600;">
+                        {% if registro.estado == 'nuevo' %}
+                            <span style="display: inline-block; padding: 0.25rem 0.625rem; background-color: #10b981; color: white; border-radius: 9999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.025em;">Nuevo</span>
+                        {% elif registro.estado == 'actualizar' %}
+                            <span style="display: inline-block; padding: 0.25rem 0.625rem; background-color: #f59e0b; color: white; border-radius: 9999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.025em;">Actualizar</span>
+                        {% elif registro.estado == 'duplicado' %}
+                            <span style="display: inline-block; padding: 0.25rem 0.625rem; background-color: #6b7280; color: white; border-radius: 9999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.025em;">Duplicado</span>
+                        {% elif registro.estado == 'error' %}
+                            <span style="display: inline-block; padding: 0.25rem 0.625rem; background-color: #ef4444; color: white; border-radius: 9999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.025em;">Error</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.8125rem; font-style: italic;">{{ registro.razon }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="padding: 2rem; text-align: center; color: #9ca3af; font-style: italic;">
+                        No se encontraron registros para procesar.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Alertas de errores globales -->
+    {% if errores %}
+        <div style="margin-top: 2rem; padding: 1.25rem; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+            <h3 style="font-weight: 600; color: #991b1b; margin-bottom: 0.75rem; font-size: 1rem;">⚠️ Errores detectados durante la validación:</h3>
+            <ul style="list-style: disc; margin-left: 1.5rem; color: #7f1d1d; line-height: 1.75;">
+                {% for error in errores %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Formulario de confirmación (re-subida de archivo) -->
+    <div style="margin-top: 2.5rem; padding: 1.5rem; background-color: #fef9c3; border: 2px solid #fde047; border-radius: 8px;">
+        <h3 style="font-weight: 600; color: #854d0e; margin-bottom: 1rem; font-size: 1rem;">⚠️ Confirmar Importación</h3>
+        <p style="color: #713f12; margin-bottom: 1.5rem; line-height: 1.75;">
+            Para confirmar la importación, <strong>vuelve a subir el mismo archivo Excel</strong>. 
+            Esto garantiza que los datos importados sean exactamente los que revisaste en esta previsualización.
+        </p>
+        <form method="post" action="{% url 'supplyhub:importar_oc_confirmar' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div style="margin-bottom: 1.5rem;">
+                <label for="archivo_confirmacion" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #713f12;">
+                    Archivo de confirmación:
+                </label>
+                <input 
+                    type="file" 
+                    name="archivo_confirmacion" 
+                    id="archivo_confirmacion" 
+                    accept=".xlsx,.xls" 
+                    required
+                    style="display: block; padding: 0.75rem; border: 1px solid #d97706; border-radius: 4px; width: 100%; max-width: 500px; background: white;"
+                />
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button type="submit" style="padding: 0.75rem 1.75rem; background-color: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    ✓ Confirmar e Importar
+                </button>
+                <a href="{% url 'supplyhub:importar_oc' %}" style="padding: 0.75rem 1.75rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 0.9375rem;">
+                    ← Volver a subir otro archivo
+                </a>
+                <a href="{% url 'supplyhub:seguimiento_oc' %}" style="padding: 0.75rem 1.75rem; background-color: white; color: #6b7280; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 0.9375rem; border: 1px solid #d1d5db;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

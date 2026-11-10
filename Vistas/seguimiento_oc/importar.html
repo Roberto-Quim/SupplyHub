@@ -4,7 +4,7 @@
 <section class="q-card">
     <div>
         <h2>{{ page_title }}</h2>
-        <p class="muted">Sube el reporte de Oracle Open Purchase Orders (.xlsx) para actualizar el seguimiento.</p>
+        <p class="muted">Sube el reporte de Oracle Open Purchase Orders (.xlsx) para previsualizar antes de importar.</p>
     </div>
     
     <!-- Alertas de errores críticos -->
@@ -21,18 +21,41 @@
     <form method="post" enctype="multipart/form-data" style="margin-top: 2rem;">
         {% csrf_token %}
         
-        <div style="margin-bottom: 2rem; padding: 1.5rem; border: 1px dashed #ccc; border-radius: 8px; background: #fafafa;">
-            {{ form.as_p }}
+        <div style="margin-bottom: 2rem;">
+            <label for="archivo" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">
+                Archivo Excel (QES Open Purchase Order Report):
+            </label>
+            <input 
+                type="file" 
+                name="archivo" 
+                id="archivo" 
+                accept=".xlsx,.xls" 
+                required
+                style="display: block; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; max-width: 500px; background: white;"
+            />
+            <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                Formato: Excel (.xlsx o .xls) exportado desde Oracle con columnas estándar QES.
+            </p>
         </div>
 
         <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1.5rem;">
-            <button type="submit" style="padding: 0.5rem 1.25rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                Importar Archivo
+            <button type="submit" style="padding: 0.625rem 1.5rem; background-color: #e6007e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9375rem;">
+                Previsualizar Importación
             </button>
-            <a href="{% url 'supplyhub:seguimiento_oc' %}" style="padding: 0.5rem 1.25rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: 500;">
+            <a href="{% url 'supplyhub:seguimiento_oc' %}" style="padding: 0.625rem 1.5rem; background-color: #e5e7eb; color: #374151; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 0.9375rem;">
                 Cancelar
             </a>
         </div>
     </form>
+
+    <div style="margin-top: 3rem; padding: 1.5rem; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #111827;">📋 Instrucciones</h3>
+        <ul style="list-style: disc; margin-left: 1.5rem; color: #4b5563; line-height: 1.75;">
+            <li>El archivo debe ser el reporte <strong>QES Open Purchase Order Report by Buyer</strong> exportado desde Oracle.</li>
+            <li>Columnas requeridas: <code>Po Number</code>, <code>Release Number</code>, <code>Line Number</code>, <code>Supplier Name</code>, <code>Ship To Org Name</code>, entre otras.</li>
+            <li>La previsualización mostrará qué registros son nuevos, actualizaciones o duplicados antes de confirmar.</li>
+            <li>No se realizará ninguna modificación hasta que confirmes en el paso 2.</li>
+        </ul>
+    </div>
 </section>
 {% endblock %}
