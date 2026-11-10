@@ -61,7 +61,7 @@ def seguimiento_oc_detalle(request, pk: int):
 
             # 1. Crear entrada en la bitácora de historial
             HistorialSeguimiento.objects.create(
-                linea_oc=linea,
+                linea=linea,
                 respuesta_proveedor=respuesta_proveedor,
                 fecha_revisada_propuesta=fecha_revisada if fecha_revisada else None,
                 usuario_responsable=usuario_actor,
@@ -117,24 +117,18 @@ def importar_oc_view(request):
         # Importación dinámica para resolver el nombre exacto de la función
         import supplyhub.services.importacion_oc_service as imp_service
         
-        # Detecta la función principal de importación automáticamente
-        fn_importar = getattr(
-            imp_service, 
-            'importar_oc_excel', 
-            getattr(imp_service, 'importar_ordenes_compra', None)
+        resumen = imp_service.importar_oracle_open_po(
+            request.FILES["archivo"],
+            actor_from_request(request)
         )
-        
-        if fn_importar:
-            resumen = fn_importar(
-                request.FILES["archivo"],
-                actor_from_request(request)
-            )
-            messages.success(
-                request,
-                f"Importación completada: {resumen.get('insertados', 0)} órdenes creadas, {resumen.get('actualizados', 0)} actualizadas."
-            )
-        else:
-            messages.error(request, "Servicio de importación no encontrado.")
+        messages.success(
+            request,
+            f"Importación completada: {resumen.get('insertados_oc', 0)} OC creadas, "
+            f"{resumen.get('insertados_linea', 0)} líneas creadas, "
+            f"{resumen.get('actualizados', 0)} líneas actualizadas."
+        )
+        if resumen.get('errores'):
+            messages.warning(request, f"{len(resumen['errores'])} filas con error: {resumen['errores'][0]}")
             
         return redirect("supplyhub:seguimiento_oc")
 
